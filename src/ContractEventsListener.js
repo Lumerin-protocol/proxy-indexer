@@ -31,10 +31,9 @@ class ContractEventsListener {
     this.contracts[id].on("connected", () => {
       console.log(`Start listen contract (${id}) events`);
     });
-    this.contracts[id].on("data", async () => {
+    this.contracts[id].on("data", () => {
       console.log(`Contract (${id}) updated`);
       if (this.onUpdate) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         this.onUpdate(id);
       }
     });
@@ -50,10 +49,9 @@ class ContractEventsListener {
     this.cloneFactoryListener.on("connected", () => {
       console.log("Start listen clone factory events");
     });
-    this.cloneFactoryListener.on("data", async (event) => {
+    this.cloneFactoryListener.on("data", (event) => {
       const contractId = event.returnValues._address;
       console.log("New contract created", contractId);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       this.onUpdate(contractId);
     });
   }
