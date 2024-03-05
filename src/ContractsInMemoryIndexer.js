@@ -70,7 +70,7 @@ class ContractsInMemoryIndexer {
   }
 
   #setLastSyncedContractBlock(blockNumber) {
-    this.lastSyncedContractBlock = blockNumber;
+    this.lastSyncedContractBlock = Number(blockNumber);
     this.lastSyncedTime = Date.now();
   }
 

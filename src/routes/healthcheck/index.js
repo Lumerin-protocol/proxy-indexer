@@ -11,8 +11,8 @@ module.exports = async function (fastify, opts) {
       status: "ok",
       version: process.env.npm_package_version,
       cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
-      lastSyncedContractBlock: indexer.lastSyncedContractBlock,
-      lastSyncedTime: indexer.lastSyncedTime,
+      lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
+      lastSyncedTime: Number(indexer.lastSyncedTime),
     };
   });
 };
