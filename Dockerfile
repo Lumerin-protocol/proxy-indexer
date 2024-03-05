@@ -1,9 +1,10 @@
-FROM node:20-alpine
+FROM node:current-alpine
 WORKDIR '/app'
 
 RUN apk add git
 
 COPY ./package.json ./
+RUN npm install -g npm@latest
 RUN npm install --legacy-peer-deps
 COPY . .
 
