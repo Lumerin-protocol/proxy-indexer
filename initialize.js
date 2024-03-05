@@ -16,11 +16,12 @@ const initialize = async (config) => {
   /**
    *
    * @param {string} contractId
+   * @param {number} blockNumber
    */
-  const onEventUpdate = async (contractId) => {
+  const onEventUpdate = async (contractId, blockNumber) => {
     try {
       const contract = await loader.getContract(contractId);
-      indexer.upsert(contractId, contract);
+      indexer.upsert(contractId, contract, blockNumber);
     } catch (error) {
       console.error("Error updating contract", contractId, error);
     }
@@ -36,9 +37,10 @@ const initialize = async (config) => {
    * @param {string} contractId
    * @param {Contract} contract
    * @param {import("contracts-js").ImplementationContext} implInstance
+   * @param {number} blockNumber
    */
-  const onContractLoad = (contractId, contract, implInstance) => {
-    indexer.upsert(contractId, contract);
+  const onContractLoad = (contractId, contract, implInstance, blockNumber) => {
+    indexer.upsert(contractId, contract, blockNumber);
     eventsListener.listenContract(contractId, implInstance);
   };
 
