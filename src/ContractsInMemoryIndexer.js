@@ -80,9 +80,7 @@ class ContractsInMemoryIndexer {
   }
 
   #getAll() {
-    return Object.values(this.contracts).map((c) =>
-      JSON.parse(JSON.stringify(c))
-    );
+    return JSON.parse(JSON.stringify(Object.values(this.contracts)));
   }
 
   /**
