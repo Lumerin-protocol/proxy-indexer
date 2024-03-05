@@ -18,7 +18,7 @@ stages:
   echo "*** Tag Image "
   echo "**************************"
   IMAGE_TAG="$(echo $CI_COMMIT_SHA | head -c 8)-$TGT_ENV" 
-  echo $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$IMAGE_TAG
+  echo $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG
 
 .build_image: &build_image |
   echo "*****************************"
@@ -28,29 +28,29 @@ stages:
     --build-arg WS_ETH_NODE_URL=$WALLET_ETH_NODE_ADDRESS \
     --build-arg CLONE_FACTORY_ADDRESS=$CLONE_FACTORY_ADDRESS \
     --build-arg PORT="80" \
-    -t $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$IMAGE_TAG --no-cache .
+    -t $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG --no-cache .
   
   echo "**************************"
   echo "*** Tag Image with $TGT_ENV-latest"
   echo "**************************"
-  docker tag $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$IMAGE_TAG $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$TGT_ENV-latest
+  docker tag $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest
 
   echo "**************************"
   echo "*** Push Images"
   echo "**************************"
-  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$IMAGE_TAG
-  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$TGT_ENV-latest
+  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG
+  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest
 
 .update_raw_task_definition: &update_raw_task_definition |
   echo "**************************"
-  aws ecs describe-task-definition --region $AWS_DEFAULT_REGION --task-definition tsk-$CI_AWS_ECS_NAME > output.json
+  aws ecs describe-task-definition --region $AWS_DEFAULT_REGION --task-definition tsk-$CI_AWS_ECS_SVC > output.json
   echo "**************************"
   echo "*** Original Task Definition"
   echo "**************************"
   jq . output.json 
   
   # Update the Image
-  jq '.taskDefinition.containerDefinitions[].image = "'$CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$TGT_ENV-latest'"' output.json > updated.json
+  jq '.taskDefinition.containerDefinitions[].image = "'$CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest'"' output.json > updated.json
   
   # Extract JUST Task Definition from the output.json file
   jq '.taskDefinition' updated.json > extracted.json  
@@ -66,18 +66,18 @@ stages:
 
 .deploy_new_task_definition: &deploy_new_task_definition |
   aws ecs register-task-definition --region $AWS_DEFAULT_REGION --cli-input-json file://input.json
-  REVISION=$(aws ecs describe-task-definition --task-definition tsk-$CI_AWS_ECS_NAME --region $AWS_DEFAULT_REGION | egrep "revision" | tr "/" " " | awk '{print $2}' | sed 's/"$//' | cut -d "," -f 1)
+  REVISION=$(aws ecs describe-task-definition --task-definition tsk-$CI_AWS_ECS_SVC --region $AWS_DEFAULT_REGION | egrep "revision" | tr "/" " " | awk '{print $2}' | sed 's/"$//' | cut -d "," -f 1)
   echo "****************************************************"
   echo "****************************************************"
   echo "*** Update Task: "
   echo "*** - AWS Account: Titanio-$TGT_ENV"
-  echo "*** - Cluster:    ecs-$CI_AWS_ECS_NAME-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
-  echo "*** - Service:    svc-$CI_AWS_ECS_NAME-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
-  echo "*** - Task:       tsk-$CI_AWS_ECS_NAME:$REVISION"
-  echo "*** - Image:      $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_NAME:$IMAGE_TAG"
+  echo "*** - Cluster:    ecs-$CI_AWS_ECS_CLUSTER-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
+  echo "*** - Service:    svc-$CI_AWS_ECS_SVC-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
+  echo "*** - Task:       tsk-$CI_AWS_ECS_SVC:$REVISION"
+  echo "*** - Image:      $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG"
   echo "****************************************************"
   echo "****************************************************"
-  aws ecs update-service --region $AWS_DEFAULT_REGION --cluster ecs-$CI_AWS_ECS_NAME-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --service svc-$CI_AWS_ECS_NAME-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --task-definition tsk-$CI_AWS_ECS_NAME:$REVISION
+  aws ecs update-service --region $AWS_DEFAULT_REGION --cluster ecs-$CI_AWS_ECS_CLUSTER-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --service svc-$CI_AWS_ECS_SVC-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --task-definition tsk-$CI_AWS_ECS_SVC:$REVISION
 
     
 bedrock-02-dev:
