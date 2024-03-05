@@ -1,5 +1,12 @@
 # indexer
 
+## Start local
+
+- npm i --legacy-peer-deps
+- npm run dev
+
+## Build Docker container
+- docker build --build-arg WS_ETH_NODE_URL="" --build-arg CLONE_FACTORY_ADDRESS="" --build-arg PORT="" .
 
 
 ## Getting started
