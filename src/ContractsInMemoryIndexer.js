@@ -13,17 +13,21 @@ class ContractsInMemoryIndexer {
   constructor(mapper) {
     this.mapper = mapper;
     this.contracts = {};
+    this.lastSyncedContractBlock = 0;
+    this.lastSyncedTime = 0;
   }
 
   /**
    *
    * @param {string} contractId
    * @param {RawContract} rawContract
+   * @param {number} blockNumber
    */
-  async upsert(contractId, rawContract) {
+  async upsert(contractId, rawContract, blockNumber) {
     const id = contractId.toLowerCase();
     const contract = this.mapper.map(id, rawContract);
     this.contracts[id] = contract;
+    this.#setLastSyncedContractBlock(blockNumber);
   }
 
   /**
@@ -63,6 +67,11 @@ class ContractsInMemoryIndexer {
       walletAddr
     );
     return contract;
+  }
+
+  #setLastSyncedContractBlock(blockNumber) {
+    this.lastSyncedContractBlock = blockNumber;
+    this.lastSyncedTime = Date.now();
   }
 
   #filterHistoryByWalletAddr(history, walletAddr) {
