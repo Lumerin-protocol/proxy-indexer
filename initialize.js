@@ -6,13 +6,13 @@ const { ContractsInMemoryIndexer } = require("./src/ContractsInMemoryIndexer");
 const { ContractMapper } = require("./src/ContractMapper");
 const { ContractEventsListener } = require("./src/ContractEventsListener");
 
-const web3 = new Web3(process.env.WS_ETH_NODE_URL);
-const cloneFactory = CloneFactory(web3, process.env.CLONE_FACTORY_ADDRESS);
-
-const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());
-const loader = new ContractsLoader(web3, cloneFactory);
-
 const initialize = async (config) => {
+  const web3 = new Web3(config.WS_ETH_NODE_URL);
+  const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
+
+  const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());
+  const loader = new ContractsLoader(web3, cloneFactory);
+
   /**
    *
    * @param {string} contractId
