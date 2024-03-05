@@ -1,0 +1,29 @@
+{
+  "name": "contracts-indexer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "start": "fastify start -l info app.js",
+    "dev": "fastify start -w -l info -P app.js"
+  },
+  "author": {
+    "name": "Lumerin",
+    "email": "developer@lumerin.io",
+    "url": "https://lumerin.io"
+  },
+  "license": "MIT",
+  "copyright": "Copyright © 2024 Titan Industries (Global) Co. Ltd.",
+  "dependencies": {
+    "@fastify/autoload": "^5.0.0",
+    "@fastify/sensible": "^5.0.0",
+    "contracts-js": "github:Lumerin-protocol/contracts-js#v0.1.0",
+    "env-schema": "^5.2.1",
+    "ethers": "^6.11.1",
+    "fastify": "^4.26.1",
+    "fastify-cli": "^6.1.1",
+    "fastify-plugin": "^4.0.0",
+    "web3": "^4.5.0"
+  }
+}
