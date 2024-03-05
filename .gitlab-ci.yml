@@ -1,13 +1,148 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
-# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
-# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
-# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+# Please keep variables in alphabetical order
+# variables:
+
 stages:
-- test
-sast:
-  stage: test
-include:
-- template: Security/SAST.gitlab-ci.yml
+    - develop
+    - review
+    - deploy
+
+.ecr_login_script: &ecr_login_script |
+  echo "**************************"
+  echo "*** ECR Login to Shared Titanio-NET Repo in USE-1"
+  echo "**************************"
+  docker system prune -af
+  aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $CI_AWS_TitanIO_NET_ECR
+
+.create_image_tag: &create_image_tag |
+  echo "**************************"
+  echo "*** Tag Image "
+  echo "**************************"
+  IMAGE_TAG="$(echo $CI_COMMIT_SHA | head -c 8)-$TGT_ENV" 
+  echo $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG
+
+.build_image: &build_image |
+  echo "*****************************"
+  echo "Building & Pushing image..."
+  echo "*****************************"
+  docker build \
+    --build-arg WS_ETH_NODE_URL=$WALLET_ETH_NODE_ADDRESS \
+    --build-arg CLONE_FACTORY_ADDRESS=$CLONE_FACTORY_ADDRESS \
+    --build-arg PORT=80 \
+    -t $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG --no-cache .
+  
+  echo "**************************"
+  echo "*** Tag Image with $TGT_ENV-latest"
+  echo "**************************"
+  docker tag $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest
+
+  echo "**************************"
+  echo "*** Push Images"
+  echo "**************************"
+  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG
+  docker push $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest
+
+.update_raw_task_definition: &update_raw_task_definition |
+  echo "**************************"
+  aws ecs describe-task-definition --region $AWS_DEFAULT_REGION --task-definition tsk-$CI_AWS_ECS_SVC > output.json
+  echo "**************************"
+  echo "*** Original Task Definition"
+  echo "**************************"
+  jq . output.json 
+  
+  # Update the Image
+  jq '.taskDefinition.containerDefinitions[].image = "'$CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$TGT_ENV-latest'"' output.json > updated.json
+  
+  # Extract JUST Task Definition from the output.json file
+  jq '.taskDefinition' updated.json > extracted.json  
+
+  # Remove sections that are not needed
+  jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredBy, .registeredAt)' extracted.json > input.json
+  sed -i 's/'$CI_AWS_ACCOUNT_SBX'/'$TGT_ACCOUNT'/g' input.json  
+  
+  echo "**************************"
+  echo "*** New Task Definition"
+  echo "**************************"
+  jq . input.json
+
+.deploy_new_task_definition: &deploy_new_task_definition |
+  aws ecs register-task-definition --region $AWS_DEFAULT_REGION --cli-input-json file://input.json
+  REVISION=$(aws ecs describe-task-definition --task-definition tsk-$CI_AWS_ECS_SVC --region $AWS_DEFAULT_REGION | egrep "revision" | tr "/" " " | awk '{print $2}' | sed 's/"$//' | cut -d "," -f 1)
+  echo "****************************************************"
+  echo "****************************************************"
+  echo "*** Update Task: "
+  echo "*** - AWS Account: Titanio-$TGT_ENV"
+  echo "*** - Cluster:    ecs-$CI_AWS_ECS_CLUSTER-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
+  echo "*** - Service:    svc-$CI_AWS_ECS_SVC-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION"
+  echo "*** - Task:       tsk-$CI_AWS_ECS_SVC:$REVISION"
+  echo "*** - Image:      $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG"
+  echo "****************************************************"
+  echo "****************************************************"
+  aws ecs update-service --region $AWS_DEFAULT_REGION --cluster ecs-$CI_AWS_ECS_CLUSTER-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --service svc-$CI_AWS_ECS_SVC-$TGT_ENV-$CI_AWS_ECS_CLUSTER_REGION --task-definition tsk-$CI_AWS_ECS_SVC:$REVISION
+
+    
+bedrock-02-dev:
+    environment: dev
+    stage: develop
+    only:
+        - dev
+    image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+    tags:
+        - devops
+        - bedrock
+        - titanio-dev
+        - shell
+    variables:
+        TGT_ACCOUNT: $CI_AWS_ACCOUNT_DEV
+        TGT_ENV: dev
+    script: 
+      - *ecr_login_script
+      - *create_image_tag
+      - *build_image
+      - *update_raw_task_definition
+      - *deploy_new_task_definition
+      - echo "$TGT_ENV Updated"
+
+titanio-03-stg:
+    environment: stg
+    stage: review
+    only:
+        - stg
+    image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+    tags:
+        - devops
+        - bedrock
+        - titanio-stg
+        - shell
+    variables:
+        TGT_ACCOUNT: $CI_AWS_ACCOUNT_STG
+        TGT_ENV: stg
+    script: 
+      - *ecr_login_script
+      - *create_image_tag
+      - *build_image
+      - *update_raw_task_definition
+      - *deploy_new_task_definition
+      - echo "$TGT_ENV Updated"
+
+titanio-04-lmn-PROD:
+    environment: lmn
+    stage: deploy
+    only:
+        - main
+    when: manual
+    image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+    tags:
+        - devops
+        - bedrock
+        - titanio-lmn
+        - shell
+    variables:
+        TGT_ACCOUNT: $CI_AWS_ACCOUNT_LMN
+        TGT_ENV: lmn
+    script: 
+      - *ecr_login_script
+      - *create_image_tag
+      - *build_image
+      - *update_raw_task_definition
+      - *deploy_new_task_definition
+      - echo "$TGT_ENV Updated"
