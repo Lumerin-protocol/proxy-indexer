@@ -1,4 +1,6 @@
 const { Web3 } = require("web3");
+const Web3WsProvider = require('web3-providers-ws').default;
+
 const { CloneFactory } = require("contracts-js");
 
 const { ContractsLoader } = require("./src/ContractsLoader");
@@ -7,7 +9,12 @@ const { ContractMapper } = require("./src/ContractMapper");
 const { ContractEventsListener } = require("./src/ContractEventsListener");
 
 const initialize = async (config) => {
-  const web3 = new Web3(config.WS_ETH_NODE_URL);
+  const ws = new Web3WsProvider(config.WS_ETH_NODE_URL,{}, {
+    autoReconnect: true,
+    delay: 1000,
+    maxAttempts: 5,
+  })
+  const web3 = new Web3(ws);
   const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
 
   const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());
