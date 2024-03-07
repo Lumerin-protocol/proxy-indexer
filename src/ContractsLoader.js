@@ -16,16 +16,22 @@ class ContractsLoader {
   /**
    * Loads all contracts and stores them in the indexer
    *
-   * @param {(id: string, contract: RawContract, implInstance: import("contracts-js").ImplementationContext) => void} onLoad
+   * @param {(id: string, contract: RawContract, implInstance: import("contracts-js").ImplementationContext, blockNumber: number) => void} onLoad
    * @returns {Promise<RawContract[]>}
    */
   async loadAll(onLoad) {
+    const blockNumber = await this.web3.eth.getBlockNumber();
     const contracts = await this.getContractList();
     return await Promise.all(
       contracts.map(async (contractId) => {
         const contract = await this.getContract(contractId);
         if (typeof onLoad === "function") {
-          onLoad(contractId, contract, Implementation(this.web3, contractId));
+          onLoad(
+            contractId,
+            contract,
+            Implementation(this.web3, contractId),
+            Number(blockNumber)
+          );
         }
         return contract;
       })

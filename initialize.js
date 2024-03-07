@@ -1,4 +1,6 @@
 const { Web3 } = require("web3");
+const Web3WsProvider = require('web3-providers-ws').default;
+
 const { CloneFactory } = require("contracts-js");
 
 const { ContractsLoader } = require("./src/ContractsLoader");
@@ -7,7 +9,25 @@ const { ContractMapper } = require("./src/ContractMapper");
 const { ContractEventsListener } = require("./src/ContractEventsListener");
 
 const initialize = async (config) => {
-  const web3 = new Web3(config.WS_ETH_NODE_URL);
+  const ws = new Web3WsProvider(config.WS_ETH_NODE_URL,{}, {
+    autoReconnect: true,
+    delay: 1000,
+    maxAttempts: 10,
+  })
+  const web3 = new Web3(ws);
+
+  ws.on('disconnect', () => {
+    console.log('ws provider disconnected (disconnect event)')
+    process.exit(1)
+  });
+  ws.on('error', (error) => {
+    console.error('ws provider error', error)
+  });
+  ws.on('end', (d) => {
+    console.log('ws provider disconnected (end event)')
+    process.exit(1)
+  })
+
   const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
 
   const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());
@@ -16,11 +36,12 @@ const initialize = async (config) => {
   /**
    *
    * @param {string} contractId
+   * @param {number} blockNumber
    */
-  const onEventUpdate = async (contractId) => {
+  const onEventUpdate = async (contractId, blockNumber) => {
     try {
       const contract = await loader.getContract(contractId);
-      indexer.upsert(contractId, contract);
+      indexer.upsert(contractId, contract, blockNumber);
     } catch (error) {
       console.error("Error updating contract", contractId, error);
     }
@@ -36,9 +57,10 @@ const initialize = async (config) => {
    * @param {string} contractId
    * @param {Contract} contract
    * @param {import("contracts-js").ImplementationContext} implInstance
+   * @param {number} blockNumber
    */
-  const onContractLoad = (contractId, contract, implInstance) => {
-    indexer.upsert(contractId, contract);
+  const onContractLoad = (contractId, contract, implInstance, blockNumber) => {
+    indexer.upsert(contractId, contract, blockNumber);
     eventsListener.listenContract(contractId, implInstance);
   };
 

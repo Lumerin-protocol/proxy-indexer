@@ -2,6 +2,7 @@
 
 const path = require("node:path");
 const AutoLoad = require("@fastify/autoload");
+const cors = require("@fastify/cors");
 
 const { initialize } = require("./initialize");
 const config = require("./src/config");
@@ -11,6 +12,10 @@ const options = {
   prefix: '/api',
 };
 
+/**
+ * @param {import('fastify').FastifyInstance} fastify 
+ * @param {*} opts 
+ */
 module.exports = async function (fastify, opts) {
   console.log(`Running server with config: ${JSON.stringify(config)}`)
 
@@ -26,6 +31,26 @@ module.exports = async function (fastify, opts) {
     dir: path.join(__dirname, "src/plugins"),
     options: Object.assign(options, opts),
   });
+
+  fastify.register(cors, {
+    origin: (origin, cb) => {
+      if (!origin) {
+        return cb(null, true)
+      }
+      if (!URL.canParse(origin)) {
+        return cb(new Error("Invalid origin"), false)
+      }
+      const hostname = new URL(origin).hostname
+      if (hostname === "localhost") {
+        return cb(null, true)
+      }
+      if (hostname.includes("lumerin.io")) {
+        return cb(null, true)
+      }
+      cb(new Error("Not allowed"), false)
+    }
+  }
+  )
 
   // This loads all plugins defined in routes
   // define your routes in one of these
