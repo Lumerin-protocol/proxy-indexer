@@ -2,7 +2,7 @@
 
 const path = require("node:path");
 const AutoLoad = require("@fastify/autoload");
-const cors = require("fastify-cors");
+const cors = require("@fastify/cors");
 
 const { initialize } = require("./initialize");
 const config = require("./src/config");
@@ -34,17 +34,19 @@ module.exports = async function (fastify, opts) {
 
   fastify.register(cors, {
     origin: (origin, cb) => {
+      if (!origin) {
+        return cb(null, true)
+      }
+      if (!URL.canParse(origin)) {
+        return cb(new Error("Invalid origin"), false)
+      }
       const hostname = new URL(origin).hostname
       if (hostname === "localhost") {
-        //  Request from localhost will pass
-        cb(null, true)
-        return
+        return cb(null, true)
       }
       if (hostname.includes("lumerin.io")) {
-        cb(null, true)
-        return
+        return cb(null, true)
       }
-
       cb(new Error("Not allowed"), false)
     }
   }
