@@ -13,6 +13,7 @@ module.exports = async function (fastify, opts) {
       cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
       lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
       lastSyncedTime: Number(indexer.lastSyncedTime),
+      lastSyncedTimeISO: new Date(indexer.lastSyncedTime).toISOString(),
     };
   });
 };

@@ -12,9 +12,22 @@ const initialize = async (config) => {
   const ws = new Web3WsProvider(config.WS_ETH_NODE_URL,{}, {
     autoReconnect: true,
     delay: 1000,
-    maxAttempts: 5,
+    maxAttempts: 10,
   })
   const web3 = new Web3(ws);
+
+  ws.on('disconnect', () => {
+    console.log('ws provider disconnected (disconnect event)')
+    process.exit(1)
+  });
+  ws.on('error', (error) => {
+    console.error('ws provider error', error)
+  });
+  ws.on('end', (d) => {
+    console.log('ws provider disconnected (end event)')
+    process.exit(1)
+  })
+
   const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
 
   const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());
