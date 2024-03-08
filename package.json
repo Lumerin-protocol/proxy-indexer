@@ -1,10 +1,10 @@
 {
   "name": "contracts-indexer",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.x"
   },
   "scripts": {
     "test": "node --test test/**/*.test.js",
@@ -28,6 +28,8 @@
     "fastify": "^4.26.1",
     "fastify-cli": "^6.1.1",
     "fastify-plugin": "^4.0.0",
+    "viem": "^2.7.22",
+    "view": "^1.1.1",
     "web3": "^4.5.0"
   }
 }

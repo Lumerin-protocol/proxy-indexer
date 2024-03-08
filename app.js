@@ -33,24 +33,8 @@ module.exports = async function (fastify, opts) {
   });
 
   fastify.register(cors, {
-    origin: (origin, cb) => {
-      if (!origin) {
-        return cb(null, true)
-      }
-      if (!URL.canParse(origin)) {
-        return cb(new Error("Invalid origin"), false)
-      }
-      const hostname = new URL(origin).hostname
-      if (hostname === "localhost") {
-        return cb(null, true)
-      }
-      if (hostname.includes("lumerin.io")) {
-        return cb(null, true)
-      }
-      cb(new Error("Not allowed"), false)
-    }
-  }
-  )
+    origin: "*",
+  })
 
   // This loads all plugins defined in routes
   // define your routes in one of these
