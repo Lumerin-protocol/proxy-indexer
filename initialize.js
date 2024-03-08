@@ -46,6 +46,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
       poll: true,
       pollingInterval: 1000,
       onLogs: (logs) => {
+        console.log(`Received logs: ${logs.length}`);
         logs.forEach((log) => {
           const { eventName, args, address, blockNumber } = log;
           let contractAddress = null;
@@ -64,6 +65,9 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
           }
         });
       },
+      onError: (error) => {
+        console.error("On Error Callback", error);
+      }
     });
     console.log(
       `Started listen events for contracts: ${JSON.stringify(addresses)}, amount: ${addresses.length}`
