@@ -8,7 +8,7 @@ class ContractEventsListener {
 
   /**
    * @param {import('contracts-js').CloneFactoryContext} cloneFactory
-   * @param {(id: string) => void} onUpdate
+   * @param {(id: string, blockNumber: number) => void} onUpdate
    */
   constructor(cloneFactory, onUpdate) {
     this.cloneFactory = cloneFactory;
@@ -31,11 +31,17 @@ class ContractEventsListener {
     this.contracts[id].on("connected", () => {
       console.log(`Start listen contract (${id}) events`);
     });
-    this.contracts[id].on("data", () => {
+    this.contracts[id].on("data", (event) => {
+      const blockNumber = event.blockNumber;
       console.log(`Contract (${id}) updated`);
       if (this.onUpdate) {
-        this.onUpdate(id);
+        this.onUpdate(id, blockNumber);
       }
+    });
+    this.contracts[id].on('error', (error) => {
+      console.error(`Error listening contract (${id}) events`, error);
+      console.log('Restart server');
+      process.exit(1);
     });
   }
 
@@ -51,15 +57,21 @@ class ContractEventsListener {
     });
     this.cloneFactoryListener.on("data", (event) => {
       const contractId = event.returnValues._address;
+      const blockNumber = event.blockNumber;
       console.log("New contract created", contractId);
-      this.onUpdate(contractId);
+      this.onUpdate(contractId, blockNumber);
+    });
+    this.cloneFactoryListener.on('error', (error) => {
+      console.error("Error listening clone factory events", error);
+      console.log('Restart server');
+      process.exit(1);
     });
   }
 
   /**
    * @static
    * @param {import('contracts-js').CloneFactoryContext} cloneFactory
-   * @param {(id: string) => void} onUpdate
+   * @param {(id: string, blockNumber: number) => void} onUpdate
    * @returns {ContractEventsListener}
    */
   static create(cloneFactory, onUpdate) {

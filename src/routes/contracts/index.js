@@ -2,6 +2,11 @@
 
 const { ContractsInMemoryIndexer } = require('../../ContractsInMemoryIndexer');
 
+/**
+ * 
+ * @param {import('fastify').FastifyInstance} fastify 
+ * @param {*} opts 
+ */
 module.exports = async function (fastify, opts) {
   const indexer = ContractsInMemoryIndexer.getInstance();
 
