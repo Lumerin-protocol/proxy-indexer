@@ -1,6 +1,5 @@
 const { Web3 } = require("web3");
-const Web3WsProvider = require("web3-providers-ws").default;
-const { createPublicClient, webSocket, parseAbi } = require("viem");
+const { createPublicClient, http, parseAbi } = require("viem");
 
 const { CloneFactory } = require("contracts-js");
 
@@ -11,7 +10,7 @@ const { ContractMapper } = require("./src/ContractMapper");
 /**
  *
  * @param {import('viem').PublicClient} client
- * @param {any} loader
+ * @param {ContractsLoader} loader
  * @param {any} config
  * @param {(id, blockNumber) => void} onLogUpdate
  * @returns {Promise<void>}
@@ -67,6 +66,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
       },
       onError: (error) => {
         console.error("On Error Callback", error);
+        process.exit(1);
       }
     });
     console.log(
@@ -80,32 +80,15 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
 };
 
 const initialize = async (config) => {
+  const httpEthNodeUrl = config.WS_ETH_NODE_URL.includes('wss') ? config.WS_ETH_NODE_URL.replace('wss', 'https') : config.WS_ETH_NODE_URL;
   const client = createPublicClient({
-    transport: webSocket(config.WS_ETH_NODE_URL),
+    transport: http(httpEthNodeUrl, {
+      retryCount: 10,
+      retryInterval: 1000,
+    }),
   });
 
-  const ws = new Web3WsProvider(
-    config.WS_ETH_NODE_URL,
-    {},
-    {
-      autoReconnect: true,
-      delay: 1000,
-      maxAttempts: 10,
-    }
-  );
-  const web3 = new Web3(ws);
-
-  ws.on("disconnect", () => {
-    console.log("ws provider disconnected (disconnect event)");
-    process.exit(1);
-  });
-  ws.on("error", (error) => {
-    console.error("ws provider error", error);
-  });
-  ws.on("end", (d) => {
-    console.log("ws provider disconnected (end event)");
-    process.exit(1);
-  });
+  const web3 = new Web3(httpEthNodeUrl);
 
   const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
 
