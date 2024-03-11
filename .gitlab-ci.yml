@@ -25,8 +25,10 @@ stages:
   echo "Building & Pushing image..."
   echo "*****************************"
   docker build \
-    --build-arg WS_ETH_NODE_URL=$WALLET_ETH_NODE_ADDRESS \
+    --build-arg ADMIN_API_KEY=$ADMIN_API_KEY \
     --build-arg CLONE_FACTORY_ADDRESS=$CLONE_FACTORY_ADDRESS \
+    --build-arg ETH_NODE_URL=$INDEXER_ETH_NODE \
+    --build-arg FASTIFY_PLUGIN_TIMEOUT=60000 \
     --build-arg PORT=80 \
     -t $CI_AWS_TitanIO_NET_ECR/$CI_AWS_ECS_SVC:$IMAGE_TAG --no-cache .
   
