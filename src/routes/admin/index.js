@@ -9,7 +9,7 @@ const { ContractsLoader } = require("../../ContractsLoader");
 const { ContractMapper } = require("../../ContractMapper");
 
 module.exports = async function (fastify, opts) {
-  const web3 = new Web3(config.WS_ETH_NODE_URL);
+  const web3 = new Web3(config.ETH_NODE_URL);
   const cloneFactory = CloneFactory(web3, config.CLONE_FACTORY_ADDRESS);
 
   const indexer = ContractsInMemoryIndexer.getInstance(new ContractMapper());

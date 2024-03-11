@@ -2,20 +2,24 @@ const envSchema = require("env-schema");
 
 const schema = {
   type: "object",
-  required: ["WS_ETH_NODE_URL", "CLONE_FACTORY_ADDRESS", "ADMIN_API_KEY"],
+  required: ["ETH_NODE_URL", "CLONE_FACTORY_ADDRESS", "ADMIN_API_KEY"],
   properties: {
-    WS_ETH_NODE_URL: {
+    ADMIN_API_KEY: {
       type: "string",
-    },
-    PORT: {
-      type: "string",
-      default: "3000",
     },
     CLONE_FACTORY_ADDRESS: {
       type: "string",
     },
-    ADMIN_API_KEY: {
+    ETH_NODE_URL: {
       type: "string",
+    },
+    FASTIFY_PLUGIN_TIMEOUT: {
+      type: "integer",
+      default: 60000,
+    },
+    PORT: {
+      type: "string",
+      default: "3000",
     },
   },
 };
