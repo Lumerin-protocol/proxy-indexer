@@ -1,6 +1,6 @@
 {
   "name": "contracts-indexer",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -29,7 +29,6 @@
     "fastify-cli": "^6.1.1",
     "fastify-plugin": "^4.0.0",
     "viem": "^2.7.22",
-    "view": "^1.1.1",
     "web3": "^4.5.0"
   }
 }
