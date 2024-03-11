@@ -80,7 +80,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
 };
 
 const initialize = async (config) => {
-  const httpEthNodeUrl = config.WS_ETH_NODE_URL.includes('wss') ? config.WS_ETH_NODE_URL.replace('wss', 'https') : config.WS_ETH_NODE_URL;
+  const httpEthNodeUrl = config.ETH_NODE_URL;
   const client = createPublicClient({
     transport: http(httpEthNodeUrl, {
       retryCount: 10,
