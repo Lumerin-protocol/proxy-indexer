@@ -34,8 +34,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
       "event purchaseInfoUpdated(address indexed _address)",
   
       // Implementation Events
-      "event contractClosed(address indexed _buyer)",
-      "event cipherTextUpdated(string newCipherText)",
+      "event closedEarly(CloseReason reason)",
       "event destinationUpdated(string newValidatorURL, string newDestURL)",
     ];
   
