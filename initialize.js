@@ -99,13 +99,18 @@ const initialize = async (config) => {
    *
    * @param {string} contractId
    * @param {number} blockNumber
+   * @param {number} [retryCount]
    */
-  const onEventUpdate = async (contractId, blockNumber) => {
+  const onEventUpdate = async (contractId, blockNumber, retryCount = 0) => {
     try {
+      await new Promise((resolve) => setTimeout(resolve, retryCount * 1000));
       const contract = await loader.getContract(contractId);
       indexer.upsert(contractId, contract, blockNumber);
     } catch (error) {
-      console.error("Error updating contract", contractId, error);
+      console.error(`Error updating contract ${contractId}, error: `, error, `retryCount: ${retryCount}`);
+      if (retryCount <= 10) {
+        onEventUpdate(contractId, blockNumber, retryCount + 1);
+      }
     }
   };
 
