@@ -1,5 +1,10 @@
 // @ts-check
 
+const CONTRACT_STATE = {
+  Available: "0",
+  Running: "1",
+};
+
 class ContractsInMemoryIndexer {
   /**
    * @type {ContractsInMemoryIndexer}
@@ -55,12 +60,12 @@ class ContractsInMemoryIndexer {
    * @returns {Promise<Contract|null>}
    */
   async get(id, walletAddr) {
-    if (!walletAddr) {
-      return this.contracts[id.toLowerCase()];
-    }
-
     const contract = this.#getOne(id);
     if (!contract) return null;
+
+    if (!walletAddr) {
+      return contract;
+    }
 
     contract.history = this.#filterHistoryByWalletAddr(
       contract.history,
@@ -80,16 +85,47 @@ class ContractsInMemoryIndexer {
     );
   }
 
+  /**
+   * 
+   * @param {ContractHistory[]} history 
+   * @returns 
+   */
+  #filterActiveContractFromHistory(history) {
+    return history.filter((h) => {
+      return +h.endTime * 1000 < Date.now();
+    });
+  }
+
   #getOne(id) {
     const contract = this.contracts[id.toLowerCase()];
-    if (contract) {
-      return JSON.parse(JSON.stringify(contract));
+    if (!contract) {
+      return null;
     }
-    return null;
+
+    const result = JSON.parse(JSON.stringify(contract));
+    result.state = this.#getContractState(contract);
+    result.history = this.#filterActiveContractFromHistory(result.history);
+    return result;
   }
 
   #getAll() {
-    return JSON.parse(JSON.stringify(Object.values(this.contracts)));
+    const ids = Object.keys(this.contracts);
+    return ids.map((id) => {
+      return this.#getOne(id);
+    });
+  }
+
+  /**
+   *
+   * @param {Contract} contract
+   */
+  #getContractState(contract) {
+    const expirationTime =
+      (+contract.startingBlockTimestamp + +contract.length) * 1000;
+    if (expirationTime < Date.now()) {
+      return CONTRACT_STATE.Available;
+    }
+    return CONTRACT_STATE.Running;
   }
 
   /**
