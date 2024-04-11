@@ -1,5 +1,6 @@
-# proxy-indexer
+# proxy-indexer 1.1.0
 Provides a docker container service (that is currently run on ECS/Fargate) that listens for events on the Ethereum blockchain and indexes them in a Postgres database. The service is built using Node.js and uses the ethers.js library to interact with the Ethereum blockchain.
+Leveraged by both wallet-desktop and Web Marketplace
 
 ## Start local
 

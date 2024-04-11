@@ -1,6 +1,5 @@
 # Please keep variables in alphabetical order
 # variables:
-
 stages:
     - develop
     - review
