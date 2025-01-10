@@ -19,7 +19,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
   try {
     const contractAddresses = await loader.getContractList();
     const addresses = [config.CLONE_FACTORY_ADDRESS, ...contractAddresses];
-  
+
     const cloneFactoryEvents = [
       "contractCreated",
       "clonefactoryContractPurchased",
@@ -29,16 +29,16 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
     const eventsAbi = [
       // Clone Factory Events
       "event contractCreated(address indexed _address, string _pubkey)",
-      "event clonefactoryContractPurchased(address indexed _address)",
+      "event clonefactoryContractPurchased(address indexed _address, address indexed _validator)",
       "event contractDeleteUpdated(address _address, bool _isDeleted)",
       "event purchaseInfoUpdated(address indexed _address)",
-  
+
       // Implementation Events
       "event closedEarly(uint8 reason)",
       "event fundsClaimed()",
       "event destinationUpdated(string newValidatorURL, string newDestURL)",
     ];
-  
+
     const unwatch = client.watchEvent({
       address: addresses,
       events: parseAbi(eventsAbi),
@@ -55,7 +55,7 @@ const startWatch = async (client, loader, config, onLogUpdate) => {
             contractAddress = address;
           }
           console.log(`Received log for contract: ${contractAddress}`);
-  
+
           onLogUpdate(contractAddress, Number(blockNumber));
           if (eventName === "contractCreated") {
             console.log('Got contract created event, restating watch')
