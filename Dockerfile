@@ -1,12 +1,29 @@
-FROM node:current-alpine
+# Build stage
+FROM node:current-alpine AS builder
 WORKDIR '/app'
 
 RUN apk add git
 
-COPY ./package.json ./
-RUN npm install -g npm@latest
-RUN npm install --legacy-peer-deps
+COPY ./package*.json ./
+
+RUN npm ci
+
 COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Create production node_modules
+RUN npm prune --production
+
+# Production stage
+FROM node:current-alpine
+WORKDIR '/app'
+
+# Copy only necessary files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
 # keep alphabetically sorted
 ARG ADMIN_API_KEY
@@ -24,4 +41,4 @@ ENV FASTIFY_ADDRESS=0.0.0.0
 
 EXPOSE ${PORT}
 
-CMD npm run start
+CMD node dist/app.js

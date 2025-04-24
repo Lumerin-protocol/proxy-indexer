@@ -61,3 +61,5 @@ profile*
 .env.dev 
 .env.prod
 .env.stg
+
+dist

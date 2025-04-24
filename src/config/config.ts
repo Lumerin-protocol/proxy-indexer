@@ -1,4 +1,5 @@
-const envSchema = require("env-schema");
+import envSchema from "env-schema";
+import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 
 const schema = {
   type: "object",
@@ -17,16 +18,20 @@ const schema = {
       type: "integer",
       default: 60000,
     },
+    FASTIFY_CLOSE_GRACE_DELAY: {
+      type: "integer",
+      default: 500,
+    },
     PORT: {
-      type: "string",
-      default: "3000",
+      type: "integer",
+      default: 3000,
     },
   },
-};
+} as const satisfies JSONSchema;
 
-const config = envSchema({
+export type Config = FromSchema<typeof schema>;
+
+export const config = envSchema<Config>({
   schema,
   dotenv: true, // load .env if it is there, default: false
 });
-
-module.exports = config;
