@@ -1,13 +1,13 @@
-"use strict";
-
 import { FastifyInstance } from "fastify";
 import { ContractsLoader } from "../services/blockchain.repo";
-import { ContractsInMemoryIndexer } from "../services/cache.repo";
 import { Config } from "../config/config";
+import { ContractService } from "../services/contract.service";
+import { ContractsInMemoryIndexer } from "../services/cache.repo";
 
 export async function router(
   fastify: FastifyInstance,
   config: Config,
+  service: ContractService,
   indexer: ContractsInMemoryIndexer,
   loader: ContractsLoader
 ) {
@@ -31,7 +31,7 @@ export async function router(
   fastify.get("/contracts", async function (request, reply) {
     const { walletAddr } = request.query;
     // TODO: add validation
-    return indexer.getAll(walletAddr);
+    return service.getAll(walletAddr);
   });
 
   fastify.get("/contracts/:id", async function (request, reply) {
@@ -39,7 +39,7 @@ export async function router(
     const { id } = params;
     const { walletAddr } = query;
 
-    const contract = await indexer.get(id, walletAddr);
+    const contract = await service.get(id, walletAddr);
     if (!contract) {
       return fastify.httpErrors.notFound("Contract not found");
     }

@@ -3,7 +3,7 @@ import type { FromSchema, JSONSchema } from "json-schema-to-ts";
 
 const schema = {
   type: "object",
-  required: ["ETH_NODE_URL", "CLONE_FACTORY_ADDRESS", "ADMIN_API_KEY"],
+  required: ["ETH_NODE_URL", "CLONE_FACTORY_ADDRESS", "ADMIN_API_KEY", "HASHRATE_ORACLE_ADDRESS"],
   properties: {
     ADMIN_API_KEY: {
       type: "string",
@@ -12,6 +12,9 @@ const schema = {
       type: "string",
     },
     ETH_NODE_URL: {
+      type: "string",
+    },
+    HASHRATE_ORACLE_ADDRESS: {
       type: "string",
     },
     FASTIFY_PLUGIN_TIMEOUT: {

@@ -9,10 +9,14 @@ import { router } from "./routes/root";
 import { ContractsInMemoryIndexer } from "./services/cache.repo";
 import { ContractsLoader } from "./services/blockchain.repo";
 import sensible from "@fastify/sensible";
-
+import { ContractService } from "./services/contract.service";
 // Register your application as a normal plugin.
 
-export function startServer(indexer: ContractsInMemoryIndexer, loader: ContractsLoader) {
+export function startServer(
+  indexer: ContractsInMemoryIndexer,
+  loader: ContractsLoader,
+  service: ContractService
+) {
   return new Promise((resolve, reject) => {
     const options = {
       prefix: "/api",
@@ -33,7 +37,7 @@ export function startServer(indexer: ContractsInMemoryIndexer, loader: Contracts
       // This loads all plugins defined in routes
       // define your routes in one of these
       instance.register(async (instance) => {
-        router(instance, config, indexer, loader);
+        router(instance, config, service, indexer, loader);
       });
     });
 

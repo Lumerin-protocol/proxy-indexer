@@ -1,6 +1,6 @@
 import { abi } from "contracts-js";
 import { PublicClient } from "viem";
-import { Contract } from "../types/contracts.js";
+import { HashrateContract } from "../types/hashrate-contract.js";
 import { mapContract, mapFutureTerms } from "./mapper";
 import {
   getCloneFactoryContract,
@@ -49,7 +49,7 @@ export class ContractsLoader {
 
     // split results into chunks
     const chunks = chunkArray(results, 3) as [PublicVariablesV2Entry, HistoryEntry, StatsEntry][];
-    const contractsMap: Record<string, Contract> = {};
+    const contractsMap: Record<string, HashrateContract> = {};
 
     // load future terms for contracts that have them
     let indexesToLoadFutureTerms: number[] = [];
@@ -89,7 +89,7 @@ export class ContractsLoader {
     return { contracts, blockNumber };
   }
 
-  async getContract(contractId: `0x${string}`): Promise<Contract> {
+  async getContract(contractId: `0x${string}`): Promise<HashrateContract> {
     const multicall = await this.pc.multicall({
       contracts: [
         {

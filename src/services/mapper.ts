@@ -1,5 +1,5 @@
-import { Contract } from "../types/contracts";
-import { FutureTerms, ContractHistory, Stats } from "../types/contracts";
+import { HashrateContract } from "../types/hashrate-contract";
+import { FutureTerms, ContractHistory, Stats } from "../types/hashrate-contract";
 import {
   FutureTermsEntry,
   HistoryEntry,
@@ -13,7 +13,7 @@ export function mapContract(
   fut: FutureTermsEntry | undefined,
   history: HistoryEntry,
   stats: StatsEntry
-): Contract {
+): HashrateContract {
   const pubVars = mapPublicVariablesV2(address, pub);
 
   return {

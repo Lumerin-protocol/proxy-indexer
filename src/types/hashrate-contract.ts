@@ -1,12 +1,5 @@
-export const CONTRACT_STATE = {
-  Available: "0",
-  Running: "1",
-} as const;
-
-export type ContractState = (typeof CONTRACT_STATE)[keyof typeof CONTRACT_STATE];
-
 /** Represents an internal contract object.**/
-export type Contract = {
+export type HashrateContract = {
   id: string;
   state: ContractState;
   version: string;
@@ -51,3 +44,10 @@ export type FutureTerms = {
   version: string;
   profitTarget: string;
 };
+
+export const CONTRACT_STATE = {
+  Available: "0",
+  Running: "1",
+} as const;
+
+export type ContractState = (typeof CONTRACT_STATE)[keyof typeof CONTRACT_STATE];
