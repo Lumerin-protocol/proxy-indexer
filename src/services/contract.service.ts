@@ -31,7 +31,9 @@ export class ContractService {
   }
 
   async #adjustContract(contract: HashrateContract, filterHistoryByAddr?: string) {
-    contract.price = await this.#calculatePrice(contract).then((price) => price.toString());
+    const { price, fee } = await this.#calculatePriceAndFee(contract);
+    contract.price = price.toString();
+    contract.fee = fee.toString();
     contract.state = this.#getContractState(contract);
 
     if (filterHistoryByAddr) {
@@ -40,13 +42,13 @@ export class ContractService {
     contract.history = this.#filterActiveContractFromHistory(contract.history);
   }
 
-  async #calculatePrice(contract: HashrateContract) {
-    const totalHashrateInTH = BigInt(contract.speed) * BigInt(contract.length);
-    const price = await this.priceCalculator.calculatePrice(
-      totalHashrateInTH,
+  async #calculatePriceAndFee(contract: HashrateContract) {
+    const totalHashes = BigInt(contract.speed) * BigInt(contract.length);
+    const { price, fee } = await this.priceCalculator.calculatePriceAndFee(
+      totalHashes,
       BigInt(contract.profitTarget)
     );
-    return price;
+    return { price, fee };
   }
 
   #filterHistoryByWalletAddr(history: ContractHistory[], walletAddr: string) {

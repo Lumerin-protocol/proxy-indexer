@@ -1,11 +1,13 @@
-import { config } from "../config/config";
+import { config } from "../config/env";
 import { parseAbi, PublicClient } from "viem";
+import { FastifyBaseLogger } from "fastify";
 
 type StartWatchProps = {
   initialContractsToWatch: Set<string>;
   onContractUpdate: (contractAddr: string, blockNumber: number) => void;
   onError?: (error: Error) => void;
   blockNumber?: number;
+  log: FastifyBaseLogger;
 };
 
 export function startWatchPromise(pc: PublicClient, props: StartWatchProps): Promise<never> {
@@ -53,7 +55,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
     pollingInterval: 1000,
     fromBlock: props.blockNumber ? BigInt(props.blockNumber) : undefined,
     onLogs: (logs) => {
-      console.log(`Received logs: ${logs.length}`);
+      props.log.info(`Received logs: ${logs.length}`);
 
       logs.forEach((log) => {
         const { eventName, args, address, blockNumber } = log;
@@ -63,13 +65,13 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
         } else {
           contractAddress = address;
         }
-        console.log(`Received log for contract: ${contractAddress}`);
+        props.log.info(`Received log for contract: ${contractAddress}`);
 
         props.onContractUpdate(contractAddress, Number(blockNumber));
 
         if (eventName === "contractCreated") {
           contractsToWatch.add(contractAddress);
-          console.log("Got contract created event, restating watch");
+          props.log.info("Got contract created event, restating watch");
           unwatch();
           const newWatch = startWatch(pc, {
             ...props,
@@ -81,7 +83,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
       });
     },
     onError: (error) => {
-      console.error("On Error Callback", error);
+      props.log.error("On Error Callback", error);
       props.onError?.(error);
     },
   });

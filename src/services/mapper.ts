@@ -1,4 +1,4 @@
-import { HashrateContract } from "../types/hashrate-contract";
+import { ContractState, HashrateContract } from "../types/hashrate-contract";
 import { FutureTerms, ContractHistory, Stats } from "../types/hashrate-contract";
 import {
   FutureTermsEntry,
@@ -18,6 +18,8 @@ export function mapContract(
 
   return {
     ...pubVars,
+    state: pubVars.state as ContractState,
+    fee: "0",
     futureTerms: mapFutureTerms(fut),
     history: mapHistory(history),
     stats: mapStats(stats),

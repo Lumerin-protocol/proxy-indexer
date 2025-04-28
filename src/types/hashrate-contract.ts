@@ -4,10 +4,11 @@ export type HashrateContract = {
   state: ContractState;
   version: string;
   price: string;
+  fee: string;
   limit: string;
-  speed: string;
-  length: string;
-  profitTarget: string;
+  speed: string; // in hashes per second
+  length: string; // in seconds
+  profitTarget: string; // in percent
   startingBlockTimestamp: string;
   buyer: string;
   seller: string;
