@@ -9,6 +9,7 @@ import { arbitrum, arbitrumSepolia, hardhat } from "viem/chains";
 import { Chain } from "viem";
 import { ContractService } from "./services/contract.service";
 import { PriceCalculator } from "./services/price-calculator";
+import pino from "pino";
 
 const chains: Record<number, Chain> = {
   [hardhat.id]: hardhat,
@@ -21,7 +22,11 @@ async function main() {
     transport: http(config.ETH_NODE_URL),
   });
 
-  console.log("Connecting to blockchain...");
+  const log = pino({
+    level: config.LOG_LEVEL,
+  });
+
+  log.info("Connecting to blockchain...");
 
   const chainId = await client0.getChainId();
   let chain = chains[chainId];
@@ -29,7 +34,7 @@ async function main() {
     throw new Error(`Chain ${chainId} is not supported`);
   }
 
-  console.log("Chain ID", chainId);
+  log.info("Chain ID", chainId);
 
   if (config.MULTICALL_ADDRESS) {
     chain.contracts = {
@@ -38,10 +43,14 @@ async function main() {
     };
   }
 
+  const ethClientLogger = log.child({ module: "ethClient" });
   const client = createPublicClient({
     transport: http(config.ETH_NODE_URL, {
-      retryCount: 10,
-      retryDelay: 1000,
+      retryCount: 5,
+      retryDelay: 200,
+      onFetchRequest: async (request) => {
+        ethClientLogger.debug("requesting blockchain: %s", await request.json());
+      },
     }),
     chain,
   });
@@ -53,12 +62,12 @@ async function main() {
     new PriceCalculator(
       client,
       config.HASHRATE_ORACLE_ADDRESS as `0x${string}`,
-      config.CLONE_FACTORY_ADDRESS as `0x${string}`
+      config.CLONE_FACTORY_ADDRESS as `0x${string}`,
+      log.child({ module: "priceCalculator" })
     )
   );
 
-  const server = new Server(indexer, loader, service);
-  const log = server.getLogger();
+  const server = new Server(indexer, loader, service, log.child({ module: "server" }));
   log.info(`Starting app with config: ${JSON.stringify(config)}`);
 
   // TODO: split into multiple phases

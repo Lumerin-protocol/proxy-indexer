@@ -1,6 +1,10 @@
 import { config } from "../config/env";
-import { parseAbi, PublicClient } from "viem";
+import { getAbiItem, parseAbi, PublicClient } from "viem";
 import { FastifyBaseLogger } from "fastify";
+import { abi } from "contracts-js";
+
+const cfAbi = abi.cloneFactoryAbi;
+const implAbi = abi.implementationAbi;
 
 type StartWatchProps = {
   initialContractsToWatch: Set<string>;
@@ -33,24 +37,24 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
     "contractDeleteUpdated",
     "purchaseInfoUpdated",
   ];
-  const eventsAbi = [
-    // Clone Factory Events
-    "event contractCreated(address indexed _address, string _pubkey)",
-    "event clonefactoryContractPurchased(address indexed _address, address indexed _validator)",
-    "event contractDeleteUpdated(address _address, bool _isDeleted)",
-    "event purchaseInfoUpdated(address indexed _address)",
 
+  const eventsAbi2 = [
+    // Clone Factory Events
+    getAbiItem({ abi: cfAbi, name: "contractCreated" }),
+    getAbiItem({ abi: cfAbi, name: "clonefactoryContractPurchased" }),
+    getAbiItem({ abi: cfAbi, name: "contractDeleteUpdated" }),
+    getAbiItem({ abi: cfAbi, name: "purchaseInfoUpdated" }),
     // Implementation Events
-    "event closedEarly(uint8 reason)",
-    "event fundsClaimed()",
-    "event destinationUpdated(string newValidatorURL, string newDestURL)",
+    getAbiItem({ abi: implAbi, name: "closedEarly" }),
+    getAbiItem({ abi: implAbi, name: "fundsClaimed" }),
+    getAbiItem({ abi: implAbi, name: "destinationUpdated" }),
   ];
 
   let unwatch: () => void;
 
   unwatch = pc.watchEvent({
     address: addresses,
-    events: parseAbi(eventsAbi),
+    events: eventsAbi2,
     poll: true,
     pollingInterval: 1000,
     fromBlock: props.blockNumber ? BigInt(props.blockNumber) : undefined,
@@ -65,7 +69,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
         } else {
           contractAddress = address;
         }
-        props.log.info(`Received log for contract: ${contractAddress}`);
+        props.log.info(`Received ${eventName}, for ${contractAddress} contract`);
 
         props.onContractUpdate(contractAddress, Number(blockNumber));
 
@@ -83,7 +87,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
       });
     },
     onError: (error) => {
-      props.log.error("On Error Callback", error);
+      props.log.error("Event listener error", error);
       props.onError?.(error);
     },
   });

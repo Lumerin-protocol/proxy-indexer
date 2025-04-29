@@ -16,8 +16,7 @@ export class ContractService {
 
   async getAll(filterHistoryByAddr?: string): Promise<HashrateContract[]> {
     const contracts = this.indexer.getAll();
-    await Promise.all(contracts.map((c) => this.#adjustContract(c, filterHistoryByAddr)));
-    return contracts;
+    return Promise.all(contracts.map((c) => this.#adjustContract(c, filterHistoryByAddr)));
   }
 
   async get(id: string, filterHistoryByAddr?: string): Promise<HashrateContract | null> {
@@ -26,20 +25,30 @@ export class ContractService {
       return null;
     }
 
-    await this.#adjustContract(contract, filterHistoryByAddr);
-    return contract;
+    return await this.#adjustContract(contract, filterHistoryByAddr);
   }
 
-  async #adjustContract(contract: HashrateContract, filterHistoryByAddr?: string) {
+  async #adjustContract(
+    contract: HashrateContract,
+    filterHistoryByAddr?: string
+  ): Promise<HashrateContract> {
     const { price, fee } = await this.#calculatePriceAndFee(contract);
-    contract.price = price.toString();
-    contract.fee = fee.toString();
-    contract.state = this.#getContractState(contract);
 
+    return {
+      ...contract,
+      price: price.toString(),
+      fee: fee.toString(),
+      state: this.#getContractState(contract),
+      history: this.#filterHistory(contract.history, filterHistoryByAddr),
+    };
+  }
+
+  #filterHistory(history: ContractHistory[], filterHistoryByAddr?: string) {
+    let historyCopy = [...history];
     if (filterHistoryByAddr) {
-      contract.history = this.#filterHistoryByWalletAddr(contract.history, filterHistoryByAddr);
+      historyCopy = this.#filterHistoryByWalletAddr(historyCopy, filterHistoryByAddr);
     }
-    contract.history = this.#filterActiveContractFromHistory(contract.history);
+    return this.#filterActiveContractFromHistory(historyCopy);
   }
 
   async #calculatePriceAndFee(contract: HashrateContract) {

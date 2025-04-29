@@ -1,23 +1,29 @@
 import { PublicClient, getContract } from "viem";
 import { hashrateOracleAbi, cloneFactoryAbi } from "contracts-js/dist/abi/abi";
+import { Logger } from "pino";
+import { Mutex } from "async-mutex";
 
 export class PriceCalculator {
   private pricePerTHInToken: bigint | null;
   private oracle: ReturnType<typeof getHashrateOracleContract>;
   private cloneFactory: ReturnType<typeof getCloneFactoryContract>;
   private priceExpirationTime = new Date(0);
-  private ttl = 60 * 1000; // 1 minute
+  private ttl = 10 * 1000; // 10 seconds
   private feeRate?: bigint;
   private feeDecimals?: bigint;
+  private mutex = new Mutex();
+  private log: Logger;
 
   constructor(
     client: PublicClient,
     hashrateOracleAddr: `0x${string}`,
-    cloneFactoryAddr: `0x${string}`
+    cloneFactoryAddr: `0x${string}`,
+    log: Logger
   ) {
     this.oracle = getHashrateOracleContract(client, hashrateOracleAddr);
     this.cloneFactory = getCloneFactoryContract(client, cloneFactoryAddr);
     this.pricePerTHInToken = null;
+    this.log = log;
   }
 
   async calculatePriceAndFee(
@@ -34,16 +40,19 @@ export class PriceCalculator {
   }
 
   private async getHashesPerTokenCached(): Promise<bigint> {
-    if (this.priceExpirationTime > new Date() && this.pricePerTHInToken !== null) {
-      return this.pricePerTHInToken;
-    }
-    this.pricePerTHInToken = await this.getHashesPerToken();
-    this.priceExpirationTime = new Date(Date.now() + this.ttl);
-    return this.pricePerTHInToken!;
+    return await this.mutex.runExclusive(async () => {
+      if (this.priceExpirationTime > new Date() && this.pricePerTHInToken !== null) {
+        return this.pricePerTHInToken;
+      }
+      this.pricePerTHInToken = await this.getHashesPerToken();
+      this.priceExpirationTime = new Date(Date.now() + this.ttl);
+      return this.pricePerTHInToken!;
+    });
   }
 
   private async getHashesPerToken() {
     const price = await this.oracle.read.getHashesforToken();
+    this.log.info("fetched hashes per token: %s", price);
     return price;
   }
 

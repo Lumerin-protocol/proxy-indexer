@@ -8,6 +8,17 @@ const schema = Type.Object({
   HASHRATE_ORACLE_ADDRESS: Type.String(),
   FASTIFY_PLUGIN_TIMEOUT: Type.Integer({ default: 60000 }),
   FASTIFY_CLOSE_GRACE_DELAY: Type.Integer({ default: 500 }),
+  LOG_LEVEL: Type.Union(
+    [
+      Type.Literal("trace"),
+      Type.Literal("debug"),
+      Type.Literal("info"),
+      Type.Literal("warn"),
+      Type.Literal("error"),
+      Type.Literal("fatal"),
+    ],
+    { default: "info" }
+  ),
   MULTICALL_ADDRESS: Type.Optional(Type.String()),
   PORT: Type.Integer({ default: 3000 }),
 });

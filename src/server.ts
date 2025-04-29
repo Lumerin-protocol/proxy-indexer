@@ -8,6 +8,7 @@ import { ContractsLoader } from "./services/blockchain.repo";
 import sensible from "@fastify/sensible";
 import { ContractService } from "./services/contract.service";
 import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import pino, { Logger } from "pino";
 
 export class Server {
   private app: ServerType;
@@ -15,9 +16,10 @@ export class Server {
   constructor(
     readonly indexer: ContractsInMemoryIndexer,
     readonly loader: ContractsLoader,
-    readonly service: ContractService
+    readonly service: ContractService,
+    readonly log: Logger
   ) {
-    this.app = createServer();
+    this.app = createServer(log);
 
     this.app.register(
       async (instance, opts) => {
@@ -25,7 +27,7 @@ export class Server {
         instance.register(cors, {
           origin: "*",
         });
-        router(instance, config, service, indexer, loader);
+        router(instance as ServerType, config, service, indexer, loader);
 
         // This loads all plugins defined in routes
         // define your routes in one of these
@@ -65,9 +67,9 @@ export class Server {
   }
 }
 
-function createServer() {
+function createServer(log: pino.BaseLogger) {
   const server = Fastify({
-    logger: {},
+    logger: log,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   return server;

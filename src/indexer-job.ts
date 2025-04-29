@@ -37,5 +37,5 @@ async function updateContract(
   log: FastifyBaseLogger
 ) {
   indexer.upsert(contract, blockNumber);
-  log.info("Updated contract in cache", contract.id);
+  log.info(`Contract ${contract.id} updated in cache`);
 }
