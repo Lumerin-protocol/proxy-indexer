@@ -15,11 +15,11 @@ on:
       - dev
       - cicd/*
 
-    paths: [".github/**", "src/**"]
+    paths: [".github/**", "src/**", "Dockerfile", "package.json", "package-lock.json", "LICENSE", "README.md"]
 
   pull_request:
     types: [opened, reopened, synchronize]
-    paths: [".github/**", "src/**", "Dockerfile"]
+    paths: [".github/**", "src/**", "Dockerfile", "package.json", "package-lock.json", "LICENSE", "README.md"]
 
 concurrency:
   group: ci-${{ github.ref }}
