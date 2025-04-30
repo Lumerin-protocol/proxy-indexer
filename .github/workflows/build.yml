@@ -116,12 +116,6 @@ jobs:
 
       - name: Build Docker Image to Test
         run: |
-          echo "Injecting version $FULLTAG into package.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" package.json
-          cat package.json | grep '"version"'  # Optional: Verify the change
-          echo "Injecting version $FULLTAG into package-lock.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" package-lock.json
-          cat package-lock.json | grep '"version"'  # Optional: Verify the change
           BUILDTAG=${{ needs.Generate-Tag.outputs.tag_name }}
           BUILDIMAGE=${{ needs.Generate-Tag.outputs.image_name }}
           BUILDCOMMIT=${{ github.sha }}
@@ -166,11 +160,11 @@ jobs:
       - name: Build and Push Multi-Platform Docker Image
         run: |
           echo "Injecting version $FULLTAG into package.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" package.json
-          cat package.json | grep '"version"'  # Optional: Verify the change
+          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package.json
+          cat ./package.json | grep '"version"'  # Optional: Verify the change
           echo "Injecting version $FULLTAG into package-lock.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" package-lock.json
-          cat package-lock.json | grep '"version"'  # Optional: Verify the change
+          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package-lock.json
+          cat ./package-lock.json | grep '"version"'  # Optional: Verify the change
           BUILDTAG=${{ needs.Generate-Tag.outputs.tag_name }}
           BUILDIMAGE=${{ needs.Generate-Tag.outputs.image_name }}
           BUILDCOMMIT=${{ github.sha }}
