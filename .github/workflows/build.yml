@@ -116,6 +116,9 @@ jobs:
 
       - name: Build Docker Image to Test
         run: |
+          # Ensure we're in the workspace directory
+          cd $GITHUB_WORKSPACE
+          
           BUILDTAG=${{ needs.Generate-Tag.outputs.tag_name }}
           BUILDIMAGE=${{ needs.Generate-Tag.outputs.image_name }}
           BUILDCOMMIT=${{ github.sha }}
@@ -159,15 +162,27 @@ jobs:
 
       - name: Build and Push Multi-Platform Docker Image
         run: |
+          # Ensure we're in the workspace directory
+          cd $GITHUB_WORKSPACE
+          
           BUILDTAG=${{ needs.Generate-Tag.outputs.tag_name }}
           BUILDIMAGE=${{ needs.Generate-Tag.outputs.image_name }}
           BUILDCOMMIT=${{ github.sha }}
           FULLTAG=${{ needs.Generate-Tag.outputs.vfull }}
+          
+          # Debug: Show current directory and file existence
+          pwd
+          ls -la
+          echo "Checking if package.json exists..."
+          [ -f ./package.json ] && echo "package.json exists" || echo "package.json does not exist"
+          echo "Checking if package-lock.json exists..."
+          [ -f ./package-lock.json ] && echo "package-lock.json exists" || echo "package-lock.json does not exist"
+          
           echo "Injecting version $FULLTAG into package.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package.json
           cat ./package.json | grep '"version"'  # Optional: Verify the change
           echo "Injecting version $FULLTAG into package-lock.json"
-          sed -i "" "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package-lock.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package-lock.json
           cat ./package-lock.json | grep '"version"'  # Optional: Verify the change
           docker buildx build \
             --platform linux/amd64 \
