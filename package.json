@@ -17,7 +17,7 @@
     "url": "https://lumerin.io"
   },
   "license": "MIT",
-  "copyright": "Copyright © 2024 Titan Industries (Global) Co. Ltd.",
+  "copyright": "Copyright © 2025 Titan Industries (Global) Co. Ltd.",
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@fastify/sensible": "^5.0.0",
