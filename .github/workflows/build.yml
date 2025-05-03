@@ -175,15 +175,9 @@ jobs:
           ls -la
           echo "Checking if package.json exists..."
           [ -f ./package.json ] && echo "package.json exists" || echo "package.json does not exist"
-          echo "Checking if package-lock.json exists..."
-          [ -f ./package-lock.json ] && echo "package-lock.json exists" || echo "package-lock.json does not exist"
-          
           echo "Injecting version $FULLTAG into package.json"
           sed -i "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package.json
           cat ./package.json | grep '"version"'  # Optional: Verify the change
-          echo "Injecting version $FULLTAG into package-lock.json"
-          sed -i "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package-lock.json
-          cat ./package-lock.json | grep '"version"'  # Optional: Verify the change
           docker buildx build \
             --platform linux/amd64 \
             --build-arg TAG_NAME=$BUILDTAG \
@@ -243,7 +237,7 @@ jobs:
           echo "✅ Sending Request to GitLab branch: $GITLABBRANCH"
           response=$(curl --silent \
             --request POST \
-            --url "${{ secrets.GITLAB_TRIGGER_URL }}" \
+            --url "${{ vars.GITLAB_TRIGGER_URL }}" \
             --form "token=${{ secrets.GITLAB_TRIGGER_TOKEN }}" \
             --form "ref=$GITLABBRANCH" \
             --form "variables[SOURCE_REPO]=${{ github.repository }}" \
