@@ -58,6 +58,7 @@ profile*
 *flamegraph*
 
 .env
-.env.dev 
+.env.test 
 .env.prod
-.env.stg
+
+dist
