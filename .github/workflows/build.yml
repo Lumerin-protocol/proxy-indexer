@@ -101,6 +101,7 @@ jobs:
     name: Test Build Indexer Container
     if: 
       (
+        (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
         (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'test' || github.base_ref == 'dev')) ||
         (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_container == 'true')) 
       )
