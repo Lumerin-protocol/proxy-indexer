@@ -97,12 +97,11 @@ jobs:
           echo "✅ Docker Image: ${IMAGE_NAME}:${VTAG}" >> $GITHUB_STEP_SUMMARY
           echo "❌ Old Major Tag: $VLAST"  >> $GITHUB_STEP_SUMMARY
 
-  Build-Indexer-Container:
-    name: Build Indexer Container
+  Test-Build-Indexer-Container:
+    name: Test Build Indexer Container
     if: 
       (
         (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'test' || github.base_ref == 'dev')) ||
-        (github.event_name == 'push' && (startsWith(github.ref, 'refs/heads/cicd/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test' || github.ref == 'refs/heads/dev')) ||
         (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_container == 'true')) 
       )
     runs-on: ubuntu-latest
@@ -141,7 +140,6 @@ jobs:
       )
     needs:
       - Generate-Tag
-      - Build-Indexer-Container
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -149,9 +147,6 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -178,7 +173,7 @@ jobs:
           echo "Injecting version $FULLTAG into package.json"
           sed -i "s/\"version\": \".*\"/\"version\": \"$FULLTAG\"/" ./package.json
           cat ./package.json | grep '"version"'  # Optional: Verify the change
-          docker buildx build \
+          docker build \
             --platform linux/amd64 \
             --build-arg TAG_NAME=$BUILDTAG \
             --build-arg COMMIT=$BUILDCOMMIT \
