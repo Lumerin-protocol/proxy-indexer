@@ -37,10 +37,12 @@ async function main() {
   log.info("Chain ID", chainId);
 
   if (config.MULTICALL_ADDRESS) {
+    log.info("Using custom multicall address", config.MULTICALL_ADDRESS);
     chain.contracts = {
       ...chain.contracts,
       multicall3: { address: config.MULTICALL_ADDRESS as `0x${string}` },
     };
+    log.info("Multicall address", config.MULTICALL_ADDRESS);
   }
 
   const ethClientLogger = log.child({ module: "ethClient" });
