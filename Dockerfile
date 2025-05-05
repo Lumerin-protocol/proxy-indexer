@@ -9,7 +9,7 @@ COPY ./package*.json ./
 RUN npm ci
 COPY . .
 
-# Build
+# Build NPM
 RUN npm run build
 
 # Remove dev dependencies after build

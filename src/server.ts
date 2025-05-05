@@ -57,7 +57,7 @@ export class Server {
       );
 
       // Start listening.
-      app.listen({ port: config.PORT }, (err) => {
+      app.listen({ port: config.PORT, host: '0.0.0.0' }, (err) => {
         if (err) {
           app.log.error(err);
           reject(err);
