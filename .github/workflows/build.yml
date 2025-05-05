@@ -11,7 +11,6 @@ on:
   push:
     branches:
       - main
-      - test
       - dev
       - cicd/*
 
@@ -101,8 +100,7 @@ jobs:
     name: Test Build Indexer Container
     if: 
       (
-        (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
-        (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'test' || github.base_ref == 'dev')) ||
+        (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'dev')) ||
         (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_container == 'true')) 
       )
     runs-on: ubuntu-latest
@@ -136,7 +134,7 @@ jobs:
     name: Build & Push Docker Image
     if: |
       (
-        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test')) ||
+        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')) ||
         (github.event_name == 'workflow_dispatch' && (github.event.inputs.build_container == 'true')) 
       )
     needs:
@@ -198,7 +196,7 @@ jobs:
     name: Deploy Indexer to GitLab
     if: |
       (
-        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test'))
+        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
       )
     needs:
       - Generate-Tag
@@ -222,7 +220,7 @@ jobs:
           FULLTAG=${{ needs.Generate-Tag.outputs.vfull }}       
           echo "Triggering GitLab Deploy for branch ${{ github.ref_name }} with tag $BUILDTAG"
           # Determine branch
-          if [ "${{ github.ref_name }}" == "test" ]; then
+          if [ "${{ github.ref_name }}" == "dev" ]; then
             GITLABBRANCH="dev"
           elif [ "${{ github.ref_name }}" == "main" ]; then
             GITLABBRANCH="main"
