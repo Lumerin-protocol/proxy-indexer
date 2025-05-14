@@ -3,16 +3,13 @@ import { HashrateContract } from "../types/hashrate-contract.js";
 /**
  * In-memory indexer(cache) for contracts that keeps track block and time of the last update
  */
-export class ContractsInMemoryIndexer {
-  contracts: Record<string, HashrateContract>;
-  lastSyncedContractBlock: number;
-  lastSyncedTime: number;
+export class Cache {
+  contracts: Record<string, HashrateContract> = {};
+  lastSyncedContractBlock: number = 0;
+  lastSyncedTime: number = 0;
+  feeRate: FeeRate = { value: 0n, decimals: 0n };
 
-  constructor() {
-    this.contracts = {};
-    this.lastSyncedContractBlock = 0;
-    this.lastSyncedTime = 0;
-  }
+  constructor() {}
 
   get(id: string): HashrateContract | null {
     const contract = this.contracts[id.toLowerCase()];
@@ -35,8 +32,27 @@ export class ContractsInMemoryIndexer {
     this.#setLastSyncedContractBlock(blockNumber);
   }
 
+  getFeeRate(): FeeRate {
+    return {
+      value: this.feeRate.value,
+      decimals: this.feeRate.decimals,
+    };
+  }
+
+  setFeeRate(param: FeeRate) {
+    this.feeRate = {
+      value: param.value,
+      decimals: param.decimals,
+    };
+  }
+
   #setLastSyncedContractBlock(blockNumber: number | string) {
     this.lastSyncedContractBlock = Number(blockNumber);
     this.lastSyncedTime = Date.now();
   }
 }
+
+export type FeeRate = {
+  value: bigint;
+  decimals: bigint;
+};

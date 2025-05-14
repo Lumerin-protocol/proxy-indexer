@@ -2,6 +2,7 @@ import { config } from "../config/env";
 import { getAbiItem, parseAbi, PublicClient } from "viem";
 import { FastifyBaseLogger } from "fastify";
 import { abi } from "contracts-js";
+import { FeeRate } from "./cache.repo";
 
 const cfAbi = abi.cloneFactoryAbi;
 const implAbi = abi.implementationAbi;
@@ -9,6 +10,7 @@ const implAbi = abi.implementationAbi;
 type StartWatchProps = {
   initialContractsToWatch: Set<string>;
   onContractUpdate: (contractAddr: string, blockNumber: number) => void;
+  onFeeUpdate: (newFeeRateScaled: bigint) => void;
   onError?: (error: Error) => void;
   blockNumber?: number;
   log: FastifyBaseLogger;
@@ -36,6 +38,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
     "clonefactoryContractPurchased",
     "contractDeleteUpdated",
     "purchaseInfoUpdated",
+    "validatorFeeRateUpdated",
   ];
 
   const eventsAbi2 = [
@@ -44,6 +47,7 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
     getAbiItem({ abi: cfAbi, name: "clonefactoryContractPurchased" }),
     getAbiItem({ abi: cfAbi, name: "contractDeleteUpdated" }),
     getAbiItem({ abi: cfAbi, name: "purchaseInfoUpdated" }),
+    getAbiItem({ abi: cfAbi, name: "validatorFeeRateUpdated" }),
     // Implementation Events
     getAbiItem({ abi: implAbi, name: "closedEarly" }),
     getAbiItem({ abi: implAbi, name: "fundsClaimed" }),
@@ -63,6 +67,12 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
 
       logs.forEach((log) => {
         const { eventName, args, address, blockNumber } = log;
+
+        if (eventName === "validatorFeeRateUpdated") {
+          props.log.info("Received validatorFeeRateUpdated event");
+          return props.onFeeUpdate(args._validatorFeeRateScaled!);
+        }
+
         let contractAddress = null;
         if (cloneFactoryEvents.includes(eventName)) {
           contractAddress = (args as any)._address;

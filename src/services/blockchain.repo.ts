@@ -121,6 +121,13 @@ export class ContractsLoader {
 
     return mapContract(contractId, pub, futureTerms, history, stats);
   }
+
+  async getFeeRate() {
+    return {
+      value: await this.cloneFactory.read.validatorFeeRateScaled(),
+      decimals: BigInt(await this.cloneFactory.read.VALIDATOR_FEE_DECIMALS()),
+    };
+  }
 }
 
 function chunkArray<T, N extends number>(array: T[], size: N): T[][] & { length: N } {

@@ -1,7 +1,7 @@
 import { ContractsLoader } from "../services/blockchain.repo";
 import { Config } from "../config/env";
 import { ContractService } from "../services/contract.service";
-import { ContractsInMemoryIndexer } from "../services/cache.repo";
+import { Cache } from "../services/cache.repo";
 import { ServerType } from "../server";
 import { Type } from "@sinclair/typebox";
 
@@ -9,7 +9,7 @@ export async function router(
   fastify: ServerType,
   config: Config,
   service: ContractService,
-  indexer: ContractsInMemoryIndexer,
+  indexer: Cache,
   loader: ContractsLoader
 ) {
   fastify.get(
