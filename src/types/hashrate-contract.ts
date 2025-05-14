@@ -5,7 +5,6 @@ export type HashrateContract = {
   version: string;
   price: string;
   fee: string;
-  limit: string;
   speed: string; // in hashes per second
   length: string; // in seconds
   profitTarget: string; // in percent

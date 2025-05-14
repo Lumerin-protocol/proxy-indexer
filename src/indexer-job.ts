@@ -1,6 +1,6 @@
 import { PublicClient } from "viem";
 import { ContractsLoader } from "./services/blockchain.repo";
-import { ContractsInMemoryIndexer } from "./services/cache.repo";
+import { Cache } from "./services/cache.repo";
 import { startWatchPromise } from "./services/listener";
 import { HashrateContract } from "./types/hashrate-contract";
 import { FastifyBaseLogger } from "fastify";
@@ -8,7 +8,7 @@ import { FastifyBaseLogger } from "fastify";
 export const start = async (
   client: PublicClient,
   loader: ContractsLoader,
-  indexer: ContractsInMemoryIndexer,
+  indexer: Cache,
   log: FastifyBaseLogger
 ) => {
   log.info("Initial load of contracts");
@@ -17,23 +17,28 @@ export const start = async (
   log.info("Loaded contracts", res.contracts.length);
 
   for (const contract of res.contracts) {
-    await updateContract(contract, Number(res.blockNumber), indexer, log);
+    updateContract(contract, Number(res.blockNumber), indexer, log);
   }
 
   await startWatchPromise(client, {
     initialContractsToWatch: new Set(res.contracts.map((c) => c.id)),
     onContractUpdate: async (contractAddr: string, blockNumber: number) => {
       const contract = await loader.getContract(contractAddr as `0x${string}`);
-      await updateContract(contract, blockNumber, indexer, log);
+      updateContract(contract, blockNumber, indexer, log);
+    },
+    onFeeUpdate: async (feeRateScaled: bigint) => {
+      const decimals = await loader.cloneFactory.read.VALIDATOR_FEE_DECIMALS();
+      log.info("Fee rate updated", { feeRateScaled, decimals });
+      indexer.setFeeRate({ value: feeRateScaled, decimals: BigInt(decimals) });
     },
     log,
   });
 };
 
-async function updateContract(
+function updateContract(
   contract: HashrateContract,
   blockNumber: number,
-  indexer: ContractsInMemoryIndexer,
+  indexer: Cache,
   log: FastifyBaseLogger
 ) {
   indexer.upsert(contract, blockNumber);

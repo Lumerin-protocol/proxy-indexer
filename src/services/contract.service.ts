@@ -4,15 +4,12 @@ import {
   ContractHistory,
   ContractState,
 } from "../types/hashrate-contract";
-import { ContractsInMemoryIndexer } from "./cache.repo";
+import { Cache } from "./cache.repo";
 import { PriceCalculator } from "./price-calculator";
 
 /** Service for managing hashrate contracts. Adds price calculation and optional filtering history by wallet address */
 export class ContractService {
-  constructor(
-    private readonly indexer: ContractsInMemoryIndexer,
-    private readonly priceCalculator: PriceCalculator
-  ) {}
+  constructor(private readonly indexer: Cache, private readonly priceCalculator: PriceCalculator) {}
 
   async getAll(filterHistoryByAddr?: string): Promise<HashrateContract[]> {
     const contracts = this.indexer.getAll();

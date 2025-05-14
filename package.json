@@ -1,6 +1,6 @@
 {
   "name": "contracts-indexer",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "main": "index.js",
   "engines": {
@@ -25,7 +25,7 @@
     "@sinclair/typebox": "^0.33.22",
     "async-mutex": "^0.5.0",
     "close-with-grace": "^2.2.0",
-    "contracts-js": "github:Lumerin-protocol/contracts-js#v2.0.3",
+    "contracts-js": "github:Lumerin-protocol/contracts-js#v2.0.5",
     "env-schema": "^5.2.1",
     "ethers": "^6.11.1",
     "fastify": "^4.26.1",

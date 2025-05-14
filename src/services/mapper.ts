@@ -43,7 +43,7 @@ export function mapPublicVariablesV2(addr: string, pub: PublicVariablesV2Entry) 
     id: addr.toLowerCase(),
     state: state.toString(),
     price: terms._price.toString(),
-    limit: terms._limit.toString(),
+    fee: terms._fee.toString(),
     speed: terms._speed.toString(),
     length: terms._length.toString(),
     version: terms._version.toString(),

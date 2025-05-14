@@ -3,7 +3,7 @@ import Fastify from "fastify";
 import closeWithGrace from "close-with-grace";
 import cors from "@fastify/cors";
 import { router } from "./routes/root";
-import { ContractsInMemoryIndexer } from "./services/cache.repo";
+import { Cache } from "./services/cache.repo";
 import { ContractsLoader } from "./services/blockchain.repo";
 import sensible from "@fastify/sensible";
 import { ContractService } from "./services/contract.service";
@@ -14,7 +14,7 @@ export class Server {
   private app: ServerType;
 
   constructor(
-    readonly indexer: ContractsInMemoryIndexer,
+    readonly indexer: Cache,
     readonly loader: ContractsLoader,
     readonly service: ContractService,
     readonly log: Logger
@@ -57,7 +57,7 @@ export class Server {
       );
 
       // Start listening.
-      app.listen({ port: config.PORT, host: '0.0.0.0' }, (err) => {
+      app.listen({ port: config.PORT, host: "0.0.0.0" }, (err) => {
         if (err) {
           app.log.error(err);
           reject(err);
