@@ -1,14 +1,15 @@
-import { config } from "./config/env";
-import Fastify from "fastify";
-import closeWithGrace from "close-with-grace";
 import cors from "@fastify/cors";
-import { router } from "./routes/root";
-import { Cache } from "./services/cache.repo";
-import { ContractsLoader } from "./services/blockchain.repo";
 import sensible from "@fastify/sensible";
-import { ContractService } from "./services/contract.service";
-import { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import pino, { Logger } from "pino";
+import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
+import closeWithGrace from "close-with-grace";
+import Fastify from "fastify";
+import type pino from "pino";
+import type { Logger } from "pino";
+import { config } from "./config/env";
+import { router } from "./routes/root";
+import type { ContractsLoader } from "./services/blockchain.repo";
+import type { Cache } from "./services/cache.repo";
+import type { ContractService } from "./services/contract.service";
 
 export class Server {
   private app: ServerType;
@@ -17,7 +18,7 @@ export class Server {
     readonly indexer: Cache,
     readonly loader: ContractsLoader,
     readonly service: ContractService,
-    readonly log: Logger
+    readonly log: Logger,
   ) {
     this.app = createServer(log);
 
@@ -34,7 +35,7 @@ export class Server {
       },
       {
         prefix: "/api",
-      }
+      },
     );
   }
 
@@ -46,15 +47,12 @@ export class Server {
     return new Promise((resolve, reject) => {
       const app = this.app;
       // delay is the number of milliseconds for the graceful close to finish
-      closeWithGrace(
-        { delay: config.FASTIFY_CLOSE_GRACE_DELAY },
-        async function ({ signal, err, manual }) {
-          if (err) {
-            app.log.error(err);
-          }
-          await app.close();
+      closeWithGrace({ delay: config.FASTIFY_CLOSE_GRACE_DELAY }, async ({ signal, err, manual }) => {
+        if (err) {
+          app.log.error(err);
         }
-      );
+        await app.close();
+      });
 
       // Start listening.
       app.listen({ port: config.PORT, host: "0.0.0.0" }, (err) => {

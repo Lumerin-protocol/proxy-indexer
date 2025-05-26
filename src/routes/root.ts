@@ -1,16 +1,16 @@
-import { ContractsLoader } from "../services/blockchain.repo";
-import { Config } from "../config/env";
-import { ContractService } from "../services/contract.service";
-import { Cache } from "../services/cache.repo";
-import { ServerType } from "../server";
 import { Type } from "@sinclair/typebox";
+import type { Config } from "../config/env";
+import type { ServerType } from "../server";
+import type { ContractsLoader } from "../services/blockchain.repo";
+import type { Cache } from "../services/cache.repo";
+import type { ContractService } from "../services/contract.service";
 
 export async function router(
   fastify: ServerType,
   config: Config,
   service: ContractService,
   indexer: Cache,
-  loader: ContractsLoader
+  loader: ContractsLoader,
 ) {
   fastify.get(
     "/admin/reloadContracts",
@@ -21,7 +21,7 @@ export async function router(
         }),
       },
     },
-    async function (request) {
+    async (request) => {
       if (request.query.apiKey !== config.ADMIN_API_KEY) {
         return fastify.httpErrors.unauthorized();
       }
@@ -31,7 +31,7 @@ export async function router(
         indexer.upsert(contract, Number(all.blockNumber));
       }
       return indexer.getAll();
-    }
+    },
   );
 
   fastify.get(
@@ -43,10 +43,10 @@ export async function router(
         }),
       },
     },
-    async function (request) {
+    async (request) => {
       const { walletAddr } = request.query;
       return service.getAll(walletAddr);
-    }
+    },
   );
 
   fastify.get(
@@ -61,23 +61,36 @@ export async function router(
         }),
       },
     },
-    async function (request) {
+    async (request) => {
       const contract = await service.get(request.params.id, request.query.walletAddr);
       if (!contract) {
         return fastify.httpErrors.notFound("Contract not found");
       }
       return contract;
-    }
+    },
   );
 
-  fastify.get("/healthcheck", async function () {
-    return {
-      status: "ok",
-      version: process.env.npm_package_version,
-      cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
-      lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
-      lastSyncedTime: Number(indexer.lastSyncedTime),
-      lastSyncedTimeISO: new Date(indexer.lastSyncedTime).toISOString(),
-    };
-  });
+  fastify.get(
+    "/validator/:validatorAddr",
+    {
+      schema: {
+        params: Type.Object({
+          validatorAddr: Type.String(),
+        }),
+      },
+    },
+    async (request) => {
+      const { validatorAddr } = request.params;
+      return service.getValidatorHistory(validatorAddr);
+    },
+  );
+
+  fastify.get("/healthcheck", async () => ({
+    status: "ok",
+    version: process.env.npm_package_version,
+    cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
+    lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
+    lastSyncedTime: Number(indexer.lastSyncedTime),
+    lastSyncedTimeISO: new Date(indexer.lastSyncedTime).toISOString(),
+  }));
 }

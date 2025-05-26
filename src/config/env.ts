@@ -1,5 +1,5 @@
+import { type Static, Type } from "@sinclair/typebox";
 import envSchema from "env-schema";
-import { Type, Static } from "@sinclair/typebox";
 
 const schema = Type.Object({
   ADMIN_API_KEY: Type.String(),
@@ -17,7 +17,7 @@ const schema = Type.Object({
       Type.Literal("error"),
       Type.Literal("fatal"),
     ],
-    { default: "info" }
+    { default: "info" },
   ),
   MULTICALL_ADDRESS: Type.Optional(Type.String()),
   PORT: Type.Integer({ default: 3000 }),

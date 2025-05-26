@@ -1,21 +1,23 @@
 import { abi } from "contracts-js";
-import { PublicClient } from "viem";
-import { HashrateContract } from "../types/hashrate-contract.js";
-import { mapContract, mapFutureTerms } from "./mapper";
+import type { PublicClient } from "viem";
+import type { HashrateContract } from "../types/hashrate-contract.js";
 import {
+  type HistoryEntry,
+  type PublicVariablesV2Entry,
+  type StatsEntry,
   getCloneFactoryContract,
-  HistoryEntry,
-  PublicVariablesV2Entry,
-  StatsEntry,
 } from "./blockchain.types";
+import { mapContract, mapFutureTerms } from "./mapper";
 
 export class ContractsLoader {
   pc: PublicClient;
   cloneFactory: ReturnType<typeof getCloneFactoryContract>;
+  feeTokenAddr: `0x${string}`;
 
-  constructor(pc: PublicClient, cloneFactoryAddr: string) {
+  constructor(pc: PublicClient, cloneFactoryAddr: string, feeTokenAddr: `0x${string}`) {
     this.pc = pc;
     this.cloneFactory = getCloneFactoryContract(pc, cloneFactoryAddr);
+    this.feeTokenAddr = feeTokenAddr;
   }
 
   async loadAll() {
@@ -42,24 +44,39 @@ export class ContractsLoader {
           address: id,
           functionName: "getStats",
         } as const,
+        {
+          abi: abi.implementationAbi,
+          address: id,
+          functionName: "validator",
+        } as const,
+        {
+          abi: abi.lumerinTokenAbi,
+          address: this.feeTokenAddr,
+          functionName: "balanceOf",
+          args: [id],
+        } as const,
       ]),
       allowFailure: false,
       blockNumber,
     });
 
     // split results into chunks
-    const chunks = chunkArray(results, 3) as [PublicVariablesV2Entry, HistoryEntry, StatsEntry][];
+    const chunks = chunkArray(results, 5) as [
+      PublicVariablesV2Entry,
+      HistoryEntry,
+      StatsEntry,
+      `0x${string}`,
+      bigint,
+    ][];
     const contractsMap: Record<string, HashrateContract> = {};
 
     // load future terms for contracts that have them
-    let indexesToLoadFutureTerms: number[] = [];
-    let indexesToLoadPrice: number[] = [];
-    // TODO: reconstruct price for available contracts
+    const indexesToLoadFutureTerms: number[] = [];
 
     for (let i = 0; i < chunks.length; i++) {
-      const [publicVariablesV2, history, stats] = chunks[i];
+      const [publicVariablesV2, history, stats, validator, balance] = chunks[i];
       const contractId = contractIds[i];
-      const mapped = mapContract(contractId, publicVariablesV2, undefined, history, stats);
+      const mapped = mapContract(contractId, publicVariablesV2, undefined, history, stats, validator, balance);
       contractsMap[contractId] = mapped;
       if (mapped.hasFutureTerms) {
         indexesToLoadFutureTerms.push(i);
@@ -73,7 +90,7 @@ export class ContractsLoader {
             abi: abi.implementationAbi,
             address: contractIds[i],
             functionName: "futureTerms",
-          } as const)
+          }) as const,
       ),
       allowFailure: false,
     });
@@ -113,13 +130,24 @@ export class ContractsLoader {
           address: contractId,
           functionName: "futureTerms",
         } as const,
+        {
+          abi: abi.implementationAbi,
+          address: contractId,
+          functionName: "validator",
+        } as const,
+        {
+          abi: abi.lumerinTokenAbi,
+          address: this.feeTokenAddr,
+          functionName: "balanceOf",
+          args: [contractId],
+        } as const,
       ],
       allowFailure: false,
     });
 
-    const [pub, history, stats, futureTerms] = multicall;
+    const [pub, history, stats, futureTerms, validator, balance] = multicall;
 
-    return mapContract(contractId, pub, futureTerms, history, stats);
+    return mapContract(contractId, pub, futureTerms, history, stats, validator, balance);
   }
 
   async getFeeRate() {

@@ -1,15 +1,16 @@
-import { ContractsLoader } from "./services/blockchain.repo";
-import { Cache } from "./services/cache.repo";
-import { config } from "./config/env";
+import { abi } from "contracts-js";
+import pino from "pino";
 import { http } from "viem";
 import { createPublicClient } from "viem";
+import type { Chain } from "viem";
+import { arbitrum, arbitrumSepolia, hardhat } from "viem/chains";
+import { config } from "./config/env";
 import * as indexerJob from "./indexer-job";
 import { Server } from "./server";
-import { arbitrum, arbitrumSepolia, hardhat } from "viem/chains";
-import { Chain } from "viem";
+import { ContractsLoader } from "./services/blockchain.repo";
+import { Cache } from "./services/cache.repo";
 import { ContractService } from "./services/contract.service";
 import { PriceCalculator } from "./services/price-calculator";
-import pino from "pino";
 
 const chains: Record<number, Chain> = {
   [hardhat.id]: hardhat,
@@ -29,12 +30,12 @@ async function main() {
   log.info("Connecting to blockchain...");
 
   const chainId = await client0.getChainId();
-  let chain = chains[chainId];
+  const chain = chains[chainId];
   if (!chain) {
     throw new Error(`Chain ${chainId} is not supported`);
   }
 
-  log.info("Chain ID", chainId);
+  log.info("Chain ID %s", chainId);
 
   if (config.MULTICALL_ADDRESS) {
     log.info("Using custom multicall address", config.MULTICALL_ADDRESS);
@@ -57,7 +58,15 @@ async function main() {
     chain,
   });
 
-  const loader = new ContractsLoader(client, config.CLONE_FACTORY_ADDRESS);
+  const feeTokenAddr = await client.readContract({
+    abi: abi.cloneFactoryAbi,
+    address: config.CLONE_FACTORY_ADDRESS as `0x${string}`,
+    functionName: "feeToken",
+  });
+
+  log.info("Fee token address", feeTokenAddr);
+
+  const loader = new ContractsLoader(client, config.CLONE_FACTORY_ADDRESS, feeTokenAddr);
   const feeRate = await loader.getFeeRate();
   const cache = new Cache();
   cache.setFeeRate(feeRate);
@@ -68,18 +77,18 @@ async function main() {
       client,
       config.HASHRATE_ORACLE_ADDRESS as `0x${string}`,
       cache,
-      log.child({ module: "priceCalculator" })
-    )
+      log.child({ module: "priceCalculator" }),
+    ),
   );
 
   const server = new Server(cache, loader, service, log.child({ module: "server" }));
   log.info(`Starting app with config: ${JSON.stringify(config)}`);
 
   // TODO: split into multiple phases
-  await Promise.all([
-    indexerJob.start(client, loader, cache, log.child({ module: "indexerJob" })),
-    server.start(),
-  ]);
+  await Promise.all([indexerJob.start(client, loader, cache, log.child({ module: "indexerJob" })), server.start()]);
 }
 
-main();
+main().catch((err) => {
+  console.error("Exiting app due to error", err);
+  process.exit(1);
+});
