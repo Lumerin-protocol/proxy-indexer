@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "tsx watch src/app.ts | pino-pretty",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write"
   },
   "author": {
     "name": "Lumerin",
@@ -25,7 +27,7 @@
     "@sinclair/typebox": "^0.33.22",
     "async-mutex": "^0.5.0",
     "close-with-grace": "^2.2.0",
-    "contracts-js": "github:Lumerin-protocol/contracts-js#v2.0.5",
+    "contracts-js": "github:Lumerin-protocol/contracts-js#v2.0.6",
     "env-schema": "^5.2.1",
     "ethers": "^6.11.1",
     "fastify": "^4.26.1",
@@ -33,6 +35,7 @@
     "viem": "^2.7.22"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.14.1",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.3",

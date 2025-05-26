@@ -1,8 +1,8 @@
-import { PublicClient, getContract } from "viem";
-import { hashrateOracleAbi, cloneFactoryAbi } from "contracts-js/dist/abi/abi";
-import { Logger } from "pino";
 import { Mutex } from "async-mutex";
-import { FeeRate } from "./cache.repo";
+import { cloneFactoryAbi, hashrateOracleAbi } from "contracts-js/dist/abi/abi";
+import type { Logger } from "pino";
+import { type PublicClient, getContract } from "viem";
+import type { FeeRate } from "./cache.repo";
 
 interface FeeRateGetter {
   getFeeRate(): FeeRate;
@@ -17,12 +17,7 @@ export class PriceCalculator {
   private feeRateGetter: FeeRateGetter;
   private log: Logger;
 
-  constructor(
-    client: PublicClient,
-    hashrateOracleAddr: `0x${string}`,
-    feeRateGetter: FeeRateGetter,
-    log: Logger
-  ) {
+  constructor(client: PublicClient, hashrateOracleAddr: `0x${string}`, feeRateGetter: FeeRateGetter, log: Logger) {
     this.oracle = getHashrateOracleContract(client, hashrateOracleAddr);
     this.pricePerTHInToken = null;
     this.feeRateGetter = feeRateGetter;
@@ -31,12 +26,11 @@ export class PriceCalculator {
 
   async calculatePriceAndFee(
     totalHashes: bigint,
-    profitTargetPercent: bigint
+    profitTargetPercent: bigint,
   ): Promise<{ price: bigint; fee: bigint }> {
     const hashesPerToken = await this.getHashesPerTokenCached();
     const priceInTokens = totalHashes / hashesPerToken;
-    const priceWithProfit =
-      priceInTokens + (priceInTokens * BigInt(profitTargetPercent)) / BigInt(100);
+    const priceWithProfit = priceInTokens + (priceInTokens * BigInt(profitTargetPercent)) / BigInt(100);
     const { value, decimals } = await this.getFeeRate();
     const fee = (priceWithProfit * value) / 10n ** decimals;
     return { price: priceWithProfit, fee };

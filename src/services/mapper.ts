@@ -1,6 +1,6 @@
-import { ContractState, HashrateContract } from "../types/hashrate-contract";
-import { FutureTerms, ContractHistory, Stats } from "../types/hashrate-contract";
-import {
+import type { ContractState, HashrateContract } from "../types/hashrate-contract";
+import type { ContractHistory, FutureTerms, Stats } from "../types/hashrate-contract";
+import type {
   FutureTermsEntry,
   HistoryEntry,
   PublicVariablesV2Entry,
@@ -12,7 +12,9 @@ export function mapContract(
   pub: PublicVariablesV2Entry,
   fut: FutureTermsEntry | undefined,
   history: HistoryEntry,
-  stats: StatsEntry
+  stats: StatsEntry,
+  validator: `0x${string}`,
+  feeBalance: bigint
 ): HashrateContract {
   const pubVars = mapPublicVariablesV2(address, pub);
 
@@ -23,6 +25,8 @@ export function mapContract(
     futureTerms: mapFutureTerms(fut),
     history: mapHistory(history),
     stats: mapStats(stats),
+    validator,
+    feeBalance: feeBalance.toString(),
   };
 }
 
@@ -74,12 +78,14 @@ export function mapFutureTerms(futureTerms: FutureTermsEntry | undefined): Futur
 export function mapHistory(history: HistoryEntry): ContractHistory[] {
   return history.map((data) => ({
     buyer: data._buyer,
+    validator: data._validator,
     endTime: data._endTime.toString(),
     price: data._price.toString(),
+    fee: data._fee.toString(),
     speed: data._speed.toString(),
     length: data._length.toString(),
     purchaseTime: data._purchaseTime.toString(),
-    isGoodCloseout: data._goodCloseout,
+    isGoodCloseout: data._purchaseTime + data._length === data._endTime,
   }));
 }
 

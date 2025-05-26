@@ -1,34 +1,49 @@
 import {
-  HashrateContract,
   CONTRACT_STATE,
-  ContractHistory,
-  ContractState,
+  type ContractHistory,
+  type ContractState,
+  type HashrateContract,
 } from "../types/hashrate-contract";
-import { Cache } from "./cache.repo";
-import { PriceCalculator } from "./price-calculator";
+import type { Cache } from "./cache.repo";
+import type { GetResponse } from "./contract.service.types";
+import type { PriceCalculator } from "./price-calculator";
 
 /** Service for managing hashrate contracts. Adds price calculation and optional filtering history by wallet address */
 export class ContractService {
-  constructor(private readonly indexer: Cache, private readonly priceCalculator: PriceCalculator) {}
+  constructor(
+    private readonly indexer: Cache,
+    private readonly priceCalculator: PriceCalculator,
+  ) {}
 
-  async getAll(filterHistoryByAddr?: string): Promise<HashrateContract[]> {
+  async getAll(filterHistoryByAddr?: string): Promise<GetResponse<HashrateContract[]>> {
     const contracts = this.indexer.getAll();
-    return Promise.all(contracts.map((c) => this.#adjustContract(c, filterHistoryByAddr)));
+    const data = await Promise.all(contracts.map((c) => this.#adjustContract(c, filterHistoryByAddr)));
+    return {
+      data,
+      blockNumber: this.indexer.lastSyncedContractBlock,
+    };
   }
 
-  async get(id: string, filterHistoryByAddr?: string): Promise<HashrateContract | null> {
+  async get(id: string, filterHistoryByAddr?: string): Promise<GetResponse<HashrateContract | null>> {
     const contract = this.indexer.get(id);
-    if (!contract) {
-      return null;
-    }
+    const data = contract && (await this.#adjustContract(contract, filterHistoryByAddr));
 
-    return await this.#adjustContract(contract, filterHistoryByAddr);
+    return {
+      data,
+      blockNumber: this.indexer.lastSyncedContractBlock,
+    };
   }
 
-  async #adjustContract(
-    contract: HashrateContract,
-    filterHistoryByAddr?: string
-  ): Promise<HashrateContract> {
+  async getValidatorHistory(validatorAddr: string): Promise<GetResponse<ValidatorHistoryEntry[]>> {
+    const history = this.indexer.getValidatorHistory(validatorAddr as `0x${string}`);
+
+    return {
+      data: history,
+      blockNumber: this.indexer.lastSyncedContractBlock,
+    };
+  }
+
+  async #adjustContract(contract: HashrateContract, filterHistoryByAddr?: string): Promise<HashrateContract> {
     const { price, fee } = await this.#calculatePriceAndFee(contract);
 
     return {
@@ -45,26 +60,17 @@ export class ContractService {
     if (filterHistoryByAddr) {
       historyCopy = this.#filterHistoryByWalletAddr(historyCopy, filterHistoryByAddr);
     }
-    return this.#filterActiveContractFromHistory(historyCopy);
+    return historyCopy;
   }
 
   async #calculatePriceAndFee(contract: HashrateContract) {
     const totalHashes = BigInt(contract.speed) * BigInt(contract.length);
-    const { price, fee } = await this.priceCalculator.calculatePriceAndFee(
-      totalHashes,
-      BigInt(contract.profitTarget)
-    );
+    const { price, fee } = await this.priceCalculator.calculatePriceAndFee(totalHashes, BigInt(contract.profitTarget));
     return { price, fee };
   }
 
   #filterHistoryByWalletAddr(history: ContractHistory[], walletAddr: string) {
     return history.filter((h) => h.buyer.toLowerCase() === walletAddr.toLowerCase());
-  }
-
-  #filterActiveContractFromHistory(history: ContractHistory[]): ContractHistory[] {
-    return history.filter((h) => {
-      return Number(h.endTime) * 1000 < Date.now();
-    });
   }
 
   #getContractState(contract: HashrateContract): ContractState {

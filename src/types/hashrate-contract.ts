@@ -14,10 +14,12 @@ export type HashrateContract = {
   encrValidatorUrl: string;
   isDeleted: boolean;
   balance: string;
+  feeBalance: string;
   hasFutureTerms: boolean;
   history: ContractHistory[];
   stats: Stats;
   futureTerms?: FutureTerms;
+  validator: `0x${string}`;
 };
 
 /** Represents an internal stats object.**/
@@ -29,8 +31,10 @@ export type Stats = {
 /** Represents an internal contract history object.**/
 export type ContractHistory = {
   buyer: string;
+  validator: string;
   endTime: string;
   price: string;
+  fee: string;
   speed: string;
   length: string;
   purchaseTime: string;

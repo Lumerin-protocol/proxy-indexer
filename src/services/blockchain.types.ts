@@ -1,5 +1,5 @@
 import { abi } from "contracts-js";
-import { PublicClient } from "viem";
+import type { PublicClient } from "viem";
 import { getContract } from "viem";
 
 // Using ReturnType applied to the function to alias the type from the blockchain call

@@ -1,16 +1,11 @@
-import { PublicClient } from "viem";
-import { ContractsLoader } from "./services/blockchain.repo";
-import { Cache } from "./services/cache.repo";
+import type { FastifyBaseLogger } from "fastify";
+import type { PublicClient } from "viem";
+import type { ContractsLoader } from "./services/blockchain.repo";
+import type { Cache } from "./services/cache.repo";
 import { startWatchPromise } from "./services/listener";
-import { HashrateContract } from "./types/hashrate-contract";
-import { FastifyBaseLogger } from "fastify";
+import type { HashrateContract } from "./types/hashrate-contract";
 
-export const start = async (
-  client: PublicClient,
-  loader: ContractsLoader,
-  indexer: Cache,
-  log: FastifyBaseLogger
-) => {
+export const start = async (client: PublicClient, loader: ContractsLoader, indexer: Cache, log: FastifyBaseLogger) => {
   log.info("Initial load of contracts");
 
   const res = await loader.loadAll();
@@ -35,12 +30,8 @@ export const start = async (
   });
 };
 
-function updateContract(
-  contract: HashrateContract,
-  blockNumber: number,
-  indexer: Cache,
-  log: FastifyBaseLogger
-) {
-  indexer.upsert(contract, blockNumber);
+function updateContract(contract: HashrateContract, blockNumber: number, cache: Cache, log: FastifyBaseLogger) {
+  cache.upsert(contract, blockNumber);
+  cache.setValidatorHistory(contract.id as `0x${string}`, contract.history);
   log.info(`Contract ${contract.id} updated in cache`);
 }
