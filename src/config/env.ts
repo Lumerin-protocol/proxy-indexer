@@ -17,10 +17,11 @@ const schema = Type.Object({
       Type.Literal("error"),
       Type.Literal("fatal"),
     ],
-    { default: "info" },
+    { default: "info" }
   ),
   MULTICALL_ADDRESS: Type.Optional(Type.String()),
   PORT: Type.Integer({ default: 3000 }),
+  HTTPS: Type.Boolean({ default: false }),
 });
 
 export type Config = Static<typeof schema>;

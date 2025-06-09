@@ -77,15 +77,18 @@ async function main() {
       client,
       config.HASHRATE_ORACLE_ADDRESS as `0x${string}`,
       cache,
-      log.child({ module: "priceCalculator" }),
-    ),
+      log.child({ module: "priceCalculator" })
+    )
   );
 
-  const server = new Server(cache, loader, service, log.child({ module: "server" }));
+  const server = new Server(cache, loader, service, log.child({ module: "server" }), config.HTTPS);
   log.info(`Starting app with config: ${JSON.stringify(config)}`);
 
   // TODO: split into multiple phases
-  await Promise.all([indexerJob.start(client, loader, cache, log.child({ module: "indexerJob" })), server.start()]);
+  await Promise.all([
+    indexerJob.start(client, loader, cache, log.child({ module: "indexerJob" })),
+    server.start(),
+  ]);
 }
 
 main().catch((err) => {

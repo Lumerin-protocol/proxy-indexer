@@ -10,6 +10,8 @@ import { router } from "./routes/root";
 import type { ContractsLoader } from "./services/blockchain.repo";
 import type { Cache } from "./services/cache.repo";
 import type { ContractService } from "./services/contract.service";
+import selfsigned from "selfsigned";
+import type { ServerOptions } from "node:https";
 
 export class Server {
   private app: ServerType;
@@ -19,8 +21,9 @@ export class Server {
     readonly loader: ContractsLoader,
     readonly service: ContractService,
     readonly log: Logger,
+    readonly isHttps: boolean
   ) {
-    this.app = createServer(log);
+    this.app = createServer(log, isHttps);
 
     this.app.register(
       async (instance, opts) => {
@@ -35,7 +38,7 @@ export class Server {
       },
       {
         prefix: "/api",
-      },
+      }
     );
   }
 
@@ -47,12 +50,15 @@ export class Server {
     return new Promise((resolve, reject) => {
       const app = this.app;
       // delay is the number of milliseconds for the graceful close to finish
-      closeWithGrace({ delay: config.FASTIFY_CLOSE_GRACE_DELAY }, async ({ signal, err, manual }) => {
-        if (err) {
-          app.log.error(err);
+      closeWithGrace(
+        { delay: config.FASTIFY_CLOSE_GRACE_DELAY },
+        async ({ signal, err, manual }) => {
+          if (err) {
+            app.log.error(err);
+          }
+          await app.close();
         }
-        await app.close();
-      });
+      );
 
       // Start listening.
       app.listen({ port: config.PORT, host: "0.0.0.0" }, (err) => {
@@ -65,9 +71,22 @@ export class Server {
   }
 }
 
-function createServer(log: pino.BaseLogger) {
+function createServer(log: pino.BaseLogger, isHttps: boolean) {
+  let https: ServerOptions | null = null;
+
+  if (isHttps) {
+    const attrs = [{ name: "commonName", value: "localhost" }];
+    const pems = selfsigned.generate(attrs, { days: 365 });
+    https = {
+      key: pems.private,
+      cert: pems.cert,
+    };
+  }
+
   const server = Fastify({
     logger: log,
+    disableRequestLogging: true,
+    https,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   return server;
