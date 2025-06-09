@@ -68,24 +68,29 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
           // contract update emitted on implementation contract
           //
           case "closedEarly":
-            return props.onContractUpdate(address, Number(blockNumber));
+            props.onContractUpdate(address, Number(blockNumber));
+            break;
           case "destinationUpdated":
-            return props.onContractUpdate(address, Number(blockNumber));
+            props.onContractUpdate(address, Number(blockNumber));
+            break;
           case "fundsClaimed":
-            return props.onContractUpdate(address, Number(blockNumber));
+            props.onContractUpdate(address, Number(blockNumber));
+            break;
           //
           // contract update emitted on clonefactory contract
           //
           case "clonefactoryContractPurchased":
-            return props.onContractUpdate(args._address!, Number(blockNumber));
+            props.onContractUpdate(args._address!, Number(blockNumber));
+            break;
           case "contractDeleteUpdated":
-            return props.onContractUpdate(args._address!, Number(blockNumber));
+            props.onContractUpdate(args._address!, Number(blockNumber));
+            break;
           case "purchaseInfoUpdated":
             // this event is emitted both on clonefactory and implementation contract with the same abi
             if (isAddressEqual(address, config.CLONE_FACTORY_ADDRESS as `0x${string}`)) {
               props.onContractUpdate(args._address!, Number(blockNumber));
             }
-            return;
+            break;
           //
           // contract created has to restart the watch
           //
@@ -99,13 +104,15 @@ function startWatch(pc: PublicClient, props: StartWatchProps) {
               initialContractsToWatch: contractsToWatch,
             });
             unwatch = newWatch.unwatch;
-            return props.onContractUpdate(args._address!, Number(blockNumber));
+            props.onContractUpdate(args._address!, Number(blockNumber));
+            break;
           }
           //
           // other events
           //
           case "validatorFeeRateUpdated":
-            return props.onFeeUpdate(args._validatorFeeRateScaled!);
+            props.onFeeUpdate(args._validatorFeeRateScaled!);
+            break;
         }
       }
     },

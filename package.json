@@ -38,6 +38,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.14.1",
     "pino-pretty": "^13.0.0",
+    "selfsigned": "^2.4.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"
   }
