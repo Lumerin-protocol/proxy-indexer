@@ -4,13 +4,14 @@ import type { ServerType } from "../server";
 import type { ContractsLoader } from "../services/blockchain.repo";
 import type { Cache } from "../services/cache.repo";
 import type { ContractService } from "../services/contract.service";
+import packageJson from "../../package.json";
 
 export async function router(
   fastify: ServerType,
   config: Config,
   service: ContractService,
   indexer: Cache,
-  loader: ContractsLoader,
+  loader: ContractsLoader
 ) {
   fastify.get(
     "/admin/reloadContracts",
@@ -31,7 +32,7 @@ export async function router(
         indexer.upsert(contract, Number(all.blockNumber));
       }
       return indexer.getAll();
-    },
+    }
   );
 
   fastify.get(
@@ -46,7 +47,7 @@ export async function router(
     async (request) => {
       const { walletAddr } = request.query;
       return service.getAll(walletAddr);
-    },
+    }
   );
 
   fastify.get(
@@ -67,7 +68,7 @@ export async function router(
         return fastify.httpErrors.notFound("Contract not found");
       }
       return contract;
-    },
+    }
   );
 
   fastify.get(
@@ -82,12 +83,12 @@ export async function router(
     async (request) => {
       const { validatorAddr } = request.params;
       return service.getValidatorHistory(validatorAddr);
-    },
+    }
   );
 
   fastify.get("/healthcheck", async () => ({
     status: "ok",
-    version: process.env.npm_package_version,
+    version: packageJson.version || "unknown",
     cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
     lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
     lastSyncedTime: Number(indexer.lastSyncedTime),
