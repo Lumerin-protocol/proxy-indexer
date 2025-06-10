@@ -13,6 +13,8 @@ export async function router(
   indexer: Cache,
   loader: ContractsLoader
 ) {
+  const startTime = Date.now();
+
   fastify.get(
     "/admin/reloadContracts",
     {
@@ -89,6 +91,7 @@ export async function router(
   fastify.get("/healthcheck", async () => ({
     status: "ok",
     version: packageJson.version || "unknown",
+    uptimeSeconds: (Date.now() - startTime) / 1000,
     cloneFactoryAddress: config.CLONE_FACTORY_ADDRESS,
     lastSyncedContractBlock: Number(indexer.lastSyncedContractBlock),
     lastSyncedTime: Number(indexer.lastSyncedTime),
