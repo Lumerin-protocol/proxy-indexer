@@ -81,7 +81,7 @@ async function main() {
     )
   );
 
-  const server = new Server(cache, loader, service, log.child({ module: "server" }), config.HTTPS);
+  const server = new Server(cache, loader, service, log.child({ module: "server" }));
   log.info(`Starting app with config: ${JSON.stringify(config)}`);
 
   // TODO: split into multiple phases

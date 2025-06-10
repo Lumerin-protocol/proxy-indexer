@@ -21,7 +21,6 @@ const schema = Type.Object({
   ),
   MULTICALL_ADDRESS: Type.Optional(Type.String()),
   PORT: Type.Integer({ default: 3000 }),
-  HTTPS: Type.Boolean({ default: false }),
 });
 
 export type Config = Static<typeof schema>;

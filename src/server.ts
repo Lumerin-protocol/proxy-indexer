@@ -10,8 +10,6 @@ import { router } from "./routes/root";
 import type { ContractsLoader } from "./services/blockchain.repo";
 import type { Cache } from "./services/cache.repo";
 import type { ContractService } from "./services/contract.service";
-import selfsigned from "selfsigned";
-import type { ServerOptions } from "node:https";
 
 export class Server {
   private app: ServerType;
@@ -20,10 +18,9 @@ export class Server {
     readonly indexer: Cache,
     readonly loader: ContractsLoader,
     readonly service: ContractService,
-    readonly log: Logger,
-    readonly isHttps: boolean
+    readonly log: Logger
   ) {
-    this.app = createServer(log, isHttps);
+    this.app = createServer(log);
 
     this.app.register(
       async (instance, opts) => {
@@ -71,22 +68,10 @@ export class Server {
   }
 }
 
-function createServer(log: pino.BaseLogger, isHttps: boolean) {
-  let https: ServerOptions | null = null;
-
-  if (isHttps) {
-    const attrs = [{ name: "commonName", value: "localhost" }];
-    const pems = selfsigned.generate(attrs, { days: 365 });
-    https = {
-      key: pems.private,
-      cert: pems.cert,
-    };
-  }
-
+function createServer(log: pino.BaseLogger) {
   const server = Fastify({
     logger: log,
     disableRequestLogging: true,
-    https,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   return server;
