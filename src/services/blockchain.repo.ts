@@ -66,7 +66,7 @@ export class ContractsLoader {
       HistoryEntry,
       StatsEntry,
       `0x${string}`,
-      bigint,
+      bigint
     ][];
     const contractsMap: Record<string, HashrateContract> = {};
 
@@ -76,7 +76,15 @@ export class ContractsLoader {
     for (let i = 0; i < chunks.length; i++) {
       const [publicVariablesV2, history, stats, validator, balance] = chunks[i];
       const contractId = contractIds[i];
-      const mapped = mapContract(contractId, publicVariablesV2, undefined, history, stats, validator, balance);
+      const mapped = mapContract(
+        contractId,
+        publicVariablesV2,
+        undefined,
+        history,
+        stats,
+        validator,
+        balance
+      );
       contractsMap[contractId] = mapped;
       if (mapped.hasFutureTerms) {
         indexesToLoadFutureTerms.push(i);
@@ -90,7 +98,7 @@ export class ContractsLoader {
             abi: abi.implementationAbi,
             address: contractIds[i],
             functionName: "futureTerms",
-          }) as const,
+          } as const)
       ),
       allowFailure: false,
     });
@@ -118,7 +126,7 @@ export class ContractsLoader {
           abi: abi.implementationAbi,
           address: contractId,
           functionName: "getHistory",
-          args: [0n, 100n],
+          args: [0n, 100],
         } as const,
         {
           abi: abi.implementationAbi,

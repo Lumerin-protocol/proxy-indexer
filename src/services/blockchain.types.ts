@@ -30,7 +30,7 @@ export function getHistory(pc: PublicClient, contractId: string) {
     address: contractId as `0x${string}`,
     abi: abi.implementationAbi,
     client: pc,
-  }).read.getHistory([0n, 100n]);
+  }).read.getHistory([0n, 100]);
 }
 
 export function getStats(pc: PublicClient, contractId: string) {
