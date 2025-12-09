@@ -17,16 +17,18 @@ on:
         type: boolean
         default: false
 
+  # Full pipeline on push to main branches
   push:
     branches:
       - main
       - stg
       - dev
-      - cicd/*
-
     paths: [".github/**", "src/**", "Dockerfile", "package.json", "package-lock.json", "LICENSE", "README.md"]
 
+  # Build test only on PRs targeting dev
   pull_request:
+    branches:
+      - dev
     types: [opened, reopened, synchronize]
     paths: [".github/**", "src/**", "Dockerfile", "package.json", "package-lock.json", "LICENSE", "README.md"]
 
@@ -71,21 +73,16 @@ jobs:
       - name: Determine environment
         id: determine_env
         run: |
-          # Determine environment based on branch or input
+          # Determine environment based on branch or manual input
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.environment }}" ]; then
             ENV="${{ github.event.inputs.environment }}"
           else
             BRANCH="${{ github.ref_name }}"
-            if [ "$BRANCH" == "main" ]; then
-              ENV="main"
-            elif [ "$BRANCH" == "stg" ]; then
-              ENV="stg"
-            elif [[ "$BRANCH" == cicd/* ]]; then
-              ENV="dev"
-              echo "🔧 CI/CD feature branch detected - deploying to DEV"
-            else
-              ENV="dev"
-            fi
+            case "$BRANCH" in
+              main) ENV="main" ;;
+              stg)  ENV="stg" ;;
+              *)    ENV="dev" ;;
+            esac
           fi
           echo "environment=${ENV}" >> $GITHUB_OUTPUT
           
