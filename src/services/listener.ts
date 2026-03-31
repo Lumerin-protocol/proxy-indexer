@@ -6,6 +6,12 @@ import { config } from "../config/env";
 const cfAbi = abi.cloneFactoryAbi;
 const implAbi = abi.implementationAbi;
 
+/** Alchemy caps eth_getLogs at 2 000 blocks on Arbitrum One; keep a safety margin. */
+const MAX_BLOCK_RANGE = 1900n;
+const POLL_INTERVAL_MS = 2_000;
+const MAX_BACKOFF_MS = 30_000;
+const MAX_CONSECUTIVE_ERRORS = 50;
+
 type StartWatchProps = {
   initialContractsToWatch: Set<string>;
   onContractUpdate: (contractAddr: string, blockNumber: number) => void;
@@ -15,112 +21,127 @@ type StartWatchProps = {
   log: FastifyBaseLogger;
 };
 
-export function startWatchPromise(pc: PublicClient, props: StartWatchProps): Promise<never> {
-  return new Promise((_, reject) => {
-    const { unwatch } = startWatch(pc, {
-      ...props,
-      onError: (err) => {
-        props.onError?.(err);
-        unwatch();
-        reject(err);
-      },
-    });
-  });
+const watchedEvents = [
+  getAbiItem({ abi: cfAbi, name: "contractCreated" }),
+  getAbiItem({ abi: cfAbi, name: "clonefactoryContractPurchased" }),
+  getAbiItem({ abi: cfAbi, name: "contractDeleteUpdated" }),
+  getAbiItem({ abi: cfAbi, name: "purchaseInfoUpdated" }),
+  getAbiItem({ abi: cfAbi, name: "validatorFeeRateUpdated" }),
+  getAbiItem({ abi: implAbi, name: "closedEarly" }),
+  getAbiItem({ abi: implAbi, name: "destinationUpdated" }),
+  getAbiItem({ abi: implAbi, name: "fundsClaimed" }),
+];
+
+/**
+ * Polls for contract events using bounded eth_getLogs calls instead of
+ * eth_newFilter / eth_getFilterChanges.  This avoids the
+ * "invalid block range params" error that high-throughput chains like
+ * Arbitrum One trigger when the filter falls behind.
+ *
+ * Transient RPC errors are retried with exponential back-off; only after
+ * MAX_CONSECUTIVE_ERRORS failures does the promise reject (causing the
+ * ECS task to exit and be restarted by the service).
+ */
+export async function startWatchPromise(pc: PublicClient, props: StartWatchProps): Promise<never> {
+  const contractsToWatch = props.initialContractsToWatch;
+  const { log } = props;
+
+  let cursor = props.blockNumber != null ? BigInt(props.blockNumber) : await pc.getBlockNumber();
+
+  let consecutiveErrors = 0;
+  log.info({ fromBlock: Number(cursor) }, "Starting bounded getLogs polling");
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      const head = await pc.getBlockNumber();
+
+      if (head <= cursor) {
+        await sleep(POLL_INTERVAL_MS);
+        continue;
+      }
+
+      while (cursor < head) {
+        const from = cursor + 1n;
+        const to = from + MAX_BLOCK_RANGE - 1n < head ? from + MAX_BLOCK_RANGE - 1n : head;
+
+        const addresses = [config.CLONE_FACTORY_ADDRESS, ...contractsToWatch] as `0x${string}`[];
+
+        const logs = await pc.getLogs({
+          address: addresses,
+          events: watchedEvents,
+          fromBlock: from,
+          toBlock: to,
+          strict: true,
+        });
+
+        if (logs.length > 0) {
+          log.info({ count: logs.length, from: Number(from), to: Number(to) }, "Received logs");
+        }
+
+        for (const entry of logs) {
+          const { eventName, args, address, blockNumber } = entry;
+          log.info(`Received ${eventName} on ${address} with args ${JSON.stringify(args)}`);
+
+          switch (eventName) {
+            //
+            // contract update emitted on implementation contract
+            //
+            case "closedEarly":
+            case "destinationUpdated":
+            case "fundsClaimed":
+              props.onContractUpdate(address, Number(blockNumber));
+              break;
+            //
+            // contract update emitted on clonefactory contract
+            //
+            case "clonefactoryContractPurchased":
+            case "contractDeleteUpdated":
+              props.onContractUpdate(args._address, Number(blockNumber));
+              break;
+            case "purchaseInfoUpdated":
+              if (isAddressEqual(address, config.CLONE_FACTORY_ADDRESS as `0x${string}`)) {
+                props.onContractUpdate(args._address, Number(blockNumber));
+              }
+              break;
+            //
+            // new contract — add to watch set for subsequent polls
+            //
+            case "contractCreated":
+              contractsToWatch.add(args._address);
+              log.info({ newAddr: args._address }, "New contract — added to watch set");
+              props.onContractUpdate(args._address, Number(blockNumber));
+              break;
+            //
+            // other events
+            //
+            case "validatorFeeRateUpdated":
+              props.onFeeUpdate(args._validatorFeeRateScaled);
+              break;
+          }
+        }
+
+        cursor = to;
+      }
+
+      consecutiveErrors = 0;
+      await sleep(POLL_INTERVAL_MS);
+    } catch (err) {
+      consecutiveErrors++;
+      const backoff = Math.min(POLL_INTERVAL_MS * 2 ** consecutiveErrors, MAX_BACKOFF_MS);
+      log.error({ err, backoffMs: backoff, consecutiveErrors }, "getLogs poll error — retrying");
+
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        const fatal = err instanceof Error ? err : new Error(String(err));
+        props.onError?.(fatal);
+        throw fatal;
+      }
+
+      await sleep(backoff);
+    }
+  }
 }
 
-function startWatch(pc: PublicClient, props: StartWatchProps) {
-  const contractsToWatch = props.initialContractsToWatch;
-
-  const addresses = [config.CLONE_FACTORY_ADDRESS, ...contractsToWatch] as `0x${string}`[];
-
-  const eventsAbi2 = [
-    // Clone Factory Events
-    getAbiItem({ abi: cfAbi, name: "contractCreated" }),
-    getAbiItem({ abi: cfAbi, name: "clonefactoryContractPurchased" }),
-    getAbiItem({ abi: cfAbi, name: "contractDeleteUpdated" }),
-    getAbiItem({ abi: cfAbi, name: "purchaseInfoUpdated" }),
-    getAbiItem({ abi: cfAbi, name: "validatorFeeRateUpdated" }),
-    // Implementation Events
-    getAbiItem({ abi: implAbi, name: "closedEarly" }),
-    getAbiItem({ abi: implAbi, name: "destinationUpdated" }),
-    getAbiItem({ abi: implAbi, name: "fundsClaimed" }),
-  ];
-
-  let unwatch: () => void;
-
-  unwatch = pc.watchEvent({
-    address: addresses,
-    events: eventsAbi2,
-    poll: true,
-    pollingInterval: 1000,
-    fromBlock: props.blockNumber ? BigInt(props.blockNumber) : undefined,
-    onLogs: (logs) => {
-      props.log.info(`Received logs: ${logs.length}`);
-
-      for (const log of logs) {
-        const { eventName, args, address, blockNumber } = log;
-        props.log.info(
-          `Received ${log.eventName} on ${log.address} with args ${JSON.stringify(log.args)}`
-        );
-
-        switch (eventName) {
-          //
-          // contract update emitted on implementation contract
-          //
-          case "closedEarly":
-            props.onContractUpdate(address, Number(blockNumber));
-            break;
-          case "destinationUpdated":
-            props.onContractUpdate(address, Number(blockNumber));
-            break;
-          case "fundsClaimed":
-            props.onContractUpdate(address, Number(blockNumber));
-            break;
-          //
-          // contract update emitted on clonefactory contract
-          //
-          case "clonefactoryContractPurchased":
-            props.onContractUpdate(args._address!, Number(blockNumber));
-            break;
-          case "contractDeleteUpdated":
-            props.onContractUpdate(args._address!, Number(blockNumber));
-            break;
-          case "purchaseInfoUpdated":
-            // this event is emitted both on clonefactory and implementation contract with the same abi
-            if (isAddressEqual(address, config.CLONE_FACTORY_ADDRESS as `0x${string}`)) {
-              props.onContractUpdate(args._address!, Number(blockNumber));
-            }
-            break;
-          //
-          // contract created has to restart the watch
-          //
-          case "contractCreated": {
-            contractsToWatch.add(args._address!);
-            props.log.info("Got contract created event, restating watch");
-            unwatch();
-            const newWatch = startWatch(pc, {
-              ...props,
-              blockNumber: Number(blockNumber + 1n),
-              initialContractsToWatch: contractsToWatch,
-            });
-            unwatch = newWatch.unwatch;
-            props.onContractUpdate(args._address!, Number(blockNumber));
-            break;
-          }
-          //
-          // other events
-          //
-          case "validatorFeeRateUpdated":
-            props.onFeeUpdate(args._validatorFeeRateScaled!);
-            break;
-        }
-      }
-    },
-    onError: (error) => {
-      props.log.error("Event listener error", error);
-      props.onError?.(error);
-    },
-  });
-
-  return { unwatch };
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
